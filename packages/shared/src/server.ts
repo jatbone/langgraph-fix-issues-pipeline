@@ -26,6 +26,11 @@ export const IssuePipelineState = Annotation.Root({
     reducer: (x, y) => y ?? x ?? "",
     default: () => "",
   }),
+  /** Number of container creation retries attempted */
+  containerCreateRetries: Annotation<number>({
+    reducer: (x, y) => y ?? x ?? 0,
+    default: () => 0,
+  }),
 });
 
 export type TIssuePipelineGraphState = typeof IssuePipelineState.State;
