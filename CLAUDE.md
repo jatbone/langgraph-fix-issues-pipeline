@@ -62,3 +62,7 @@ See `.env.example`:
 ## Package Manager
 
 pnpm 10.4.0
+
+## Workflow
+
+- **IMPORTANT: Always create a new branch from `devel` before making ANY code changes.** Use the naming convention (`feat/...`, `fix/...`, `chore/...`). Never commit directly to `devel` or `main`.
