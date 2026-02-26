@@ -14,7 +14,11 @@ const main = async () => {
     inputText: "Hello, tell me a fun fact about graphs.",
   });
 
-  console.log(result.outputText);
+  console.log("Issue Intake Result:");
+  console.log("  Title:", result.issue?.title);
+  console.log("  Requirements:", result.issue?.requirements);
+  console.log("  Ambiguities:", result.issue?.ambiguities);
+  console.log("  Complexity:", result.issue?.complexity);
 };
 
 main().catch(console.error);

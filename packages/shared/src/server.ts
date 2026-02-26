@@ -5,21 +5,22 @@
  */
 
 import { Annotation } from "@langchain/langgraph";
+import type { TIssueIntake } from "./issue.js";
+export type { TIssueIntake } from "./issue.js";
 
 /**
  * Issue Pipeline graph state.
- * Simple input/output text state for the single-node pipeline.
  */
 export const IssuePipelineState = Annotation.Root({
-  /** Input text to send to the LLM */
+  /** Raw issue input text */
   inputText: Annotation<string>({
     reducer: (x, y) => y ?? x ?? "",
     default: () => "",
   }),
-  /** Output text returned by the LLM */
-  outputText: Annotation<string>({
-    reducer: (x, y) => y ?? x ?? "",
-    default: () => "",
+  /** Structured issue intake result */
+  issue: Annotation<TIssueIntake | null>({
+    reducer: (x, y) => y ?? x ?? null,
+    default: () => null,
   }),
   /** Docker container ID persisted across pipeline nodes */
   containerId: Annotation<string>({
