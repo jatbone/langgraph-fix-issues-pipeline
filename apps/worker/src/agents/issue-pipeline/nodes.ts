@@ -110,6 +110,6 @@ export const createIssueIntakeNode = () => {
       },
     ]);
 
-    return { issue: response };
+    return { issue: { ...response, inputText: state.inputText } };
   };
 };
