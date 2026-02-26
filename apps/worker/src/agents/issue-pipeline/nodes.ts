@@ -6,27 +6,49 @@
 import { ChatAnthropic } from "@langchain/anthropic";
 import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/shared/server";
 import { buildImage, getImageName, getContainer, getDockerClient } from "../../docker/index.js";
+import { ISSUE_NODES, MAX_CONTAINER_CREATE_RETRIES } from "./constants.js";
 
 /**
  * Creates a Docker container and starts it with sleep infinity.
  */
 export const createCreateContainerNode = () => {
-  return async (_state: TIssuePipelineGraphState) => {
-    await buildImage();
+  return async (state: TIssuePipelineGraphState) => {
+    try {
+      await buildImage();
 
-    const docker = getDockerClient();
-    const name = `claude-runner-${Date.now()}`;
-    const container = await docker.createContainer({
-      name,
-      Image: getImageName(),
-      Cmd: ["sleep", "infinity"],
-    });
+      const docker = getDockerClient();
+      const name = `claude-runner-${Date.now()}`;
+      const container = await docker.createContainer({
+        name,
+        Image: getImageName(),
+        Cmd: ["sleep", "infinity"],
+      });
 
-    await container.start();
-    console.log(`Container started: ${container.id}`);
+      await container.start();
+      console.log(`Container started: ${container.id}`);
 
-    return { containerId: container.id };
+      return { containerId: container.id };
+    } catch (error) {
+      console.error(`Container creation failed (attempt ${state.containerCreateRetries + 1}):`, error);
+      return { containerId: "", containerCreateRetries: state.containerCreateRetries + 1 };
+    }
   };
+};
+
+/**
+ * Routing function for conditional edge after create_container.
+ * Routes to issue node on success, retries on failure, or skips to cleanup.
+ */
+export const verifyContainer = (state: TIssuePipelineGraphState): string => {
+  if (state.containerId) {
+    return ISSUE_NODES.ISSUE;
+  }
+
+  if (state.containerCreateRetries < MAX_CONTAINER_CREATE_RETRIES) {
+    return ISSUE_NODES.CREATE_CONTAINER;
+  }
+
+  return ISSUE_NODES.CLEANUP_CONTAINER;
 };
 
 /**

@@ -8,3 +8,6 @@ export const ISSUE_NODES = {
   ISSUE: "issue",
   CLEANUP_CONTAINER: "cleanup_container",
 } as const;
+
+/** Maximum number of container creation retries before giving up */
+export const MAX_CONTAINER_CREATE_RETRIES = 2;
