@@ -1,13 +1,13 @@
 /**
  * Worker entry point.
- * Compiles the dummy pipeline graph, invokes it, and logs the result.
+ * Compiles the issue pipeline graph, invokes it, and logs the result.
  */
 
 import "dotenv/config";
-import { setupDummyPipelineGraph } from "./agents/dummy-pipeline/index.js";
+import { setupIssuePipelineGraph } from "./agents/issue-pipeline/index.js";
 
 const main = async () => {
-  const graph = setupDummyPipelineGraph();
+  const graph = setupIssuePipelineGraph();
   const runner = graph.compile();
 
   const result = await runner.invoke({

@@ -28,7 +28,7 @@ pnpm worker:start         # Run compiled worker
 
 - **Entry:** `src/index.ts` — loads env, compiles graph, invokes, logs result
 - **Agents:** LangGraph state machines in `src/agents/`
-  - `dummy-pipeline/` — single node that sends text to Claude and returns response
+  - `issue-pipeline/` — single node that sends text to Claude and returns response
 
 ### Shared Package (`packages/shared`)
 

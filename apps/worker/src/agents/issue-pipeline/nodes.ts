@@ -1,17 +1,17 @@
 /**
- * Node factory functions for the dummy pipeline.
+ * Node factory functions for the issue pipeline.
  * Single node that sends input text to Claude and returns the response.
  */
 
 import { ChatAnthropic } from "@langchain/anthropic";
-import type { TDummyPipelineGraphState } from "@langgraph-fix-issues-pipeline/shared/server";
+import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/shared/server";
 import { buildImage, getImageName, getContainer, getDockerClient } from "../../docker/index.js";
 
 /**
  * Creates a Docker container and starts it with sleep infinity.
  */
 export const createCreateContainerNode = () => {
-  return async (_state: TDummyPipelineGraphState) => {
+  return async (_state: TIssuePipelineGraphState) => {
     await buildImage();
 
     const docker = getDockerClient();
@@ -33,7 +33,7 @@ export const createCreateContainerNode = () => {
  * Stops and removes the Docker container.
  */
 export const createCleanupContainerNode = () => {
-  return async (state: TDummyPipelineGraphState) => {
+  return async (state: TIssuePipelineGraphState) => {
     const container = getContainer(state.containerId);
 
     try {
@@ -55,10 +55,10 @@ export const createCleanupContainerNode = () => {
 };
 
 /**
- * Dummy node — sends the input text to Claude Haiku and returns the response.
+ * Issue node — sends the input text to Claude Haiku and returns the response.
  */
-export const createDummyNode = () => {
-  return async (state: TDummyPipelineGraphState) => {
+export const createIssueNode = () => {
+  return async (state: TIssuePipelineGraphState) => {
     const model = new ChatAnthropic({
       model: "claude-haiku-4-5-20251001",
       temperature: 0,

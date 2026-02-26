@@ -1,10 +1,10 @@
 /**
- * Constants for the dummy pipeline graph.
+ * Constants for the issue pipeline graph.
  */
 
 /** Node names — used in graph construction */
-export const DUMMY_NODES = {
+export const ISSUE_NODES = {
   CREATE_CONTAINER: "create_container",
-  DUMMY: "dummy",
+  ISSUE: "issue",
   CLEANUP_CONTAINER: "cleanup_container",
 } as const;

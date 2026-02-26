@@ -7,10 +7,10 @@
 import { Annotation } from "@langchain/langgraph";
 
 /**
- * Dummy Pipeline graph state.
+ * Issue Pipeline graph state.
  * Simple input/output text state for the single-node pipeline.
  */
-export const DummyPipelineState = Annotation.Root({
+export const IssuePipelineState = Annotation.Root({
   /** Input text to send to the LLM */
   inputText: Annotation<string>({
     reducer: (x, y) => y ?? x ?? "",
@@ -28,4 +28,4 @@ export const DummyPipelineState = Annotation.Root({
   }),
 });
 
-export type TDummyPipelineGraphState = typeof DummyPipelineState.State;
+export type TIssuePipelineGraphState = typeof IssuePipelineState.State;
