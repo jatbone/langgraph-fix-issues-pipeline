@@ -1,6 +1,6 @@
 # langgraph-fix-issues-pipeline
 
-LangGraph + Nx monorepo with a single-node CLI pipeline that calls Claude.
+LangGraph + Nx monorepo with a single-node worker pipeline that calls Claude.
 
 ## Quick Start
 
@@ -8,12 +8,12 @@ LangGraph + Nx monorepo with a single-node CLI pipeline that calls Claude.
 pnpm install
 cp .env.example .env
 # Edit .env with your ANTHROPIC_API_KEY
-pnpm cli:start
+pnpm worker:start
 ```
 
 ## Architecture
 
-- **apps/cli** — Node.js CLI app that runs a LangGraph pipeline
+- **apps/worker** — Node.js worker app that runs a LangGraph pipeline
 - **packages/shared** — Shared TypeScript types and LangGraph state definitions
 
 ## Commands
@@ -22,6 +22,6 @@ pnpm cli:start
 |---------|-------------|
 | `pnpm install` | Install all dependencies |
 | `pnpm build` | Build all packages |
-| `pnpm cli:dev` | Run CLI with hot reload |
-| `pnpm cli:build` | Build CLI for production |
-| `pnpm cli:start` | Run compiled CLI |
+| `pnpm worker:dev` | Run worker with hot reload |
+| `pnpm worker:build` | Build worker for production |
+| `pnpm worker:start` | Run compiled worker |

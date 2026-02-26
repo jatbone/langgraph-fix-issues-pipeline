@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "cli:dev": "nx run cli:dev",
-    "cli:build": "nx run cli:build",
-    "cli:start": "nx run cli:start",
+    "worker:dev": "nx run worker:dev",
+    "worker:build": "nx run worker:build",
+    "worker:start": "nx run worker:start",
     "build": "nx run-many --target=build --all --verbose"
   },
   "devDependencies": {

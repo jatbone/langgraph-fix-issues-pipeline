@@ -1,5 +1,5 @@
 /**
- * CLI entry point.
+ * Worker entry point.
  * Compiles the dummy pipeline graph, invokes it, and logs the result.
  */
 

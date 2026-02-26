@@ -2,12 +2,12 @@
 
 ## Project Overview
 
-langgraph-fix-issues-pipeline is a LangGraph + Nx monorepo with a CLI app that runs agentic pipelines.
+langgraph-fix-issues-pipeline is a LangGraph + Nx monorepo with a worker app that runs agentic pipelines.
 
 ## Monorepo Structure
 
 - **pnpm workspaces** + **Nx** for build orchestration
-- `apps/cli` — Node.js CLI app with LangGraph agents
+- `apps/worker` — Node.js worker app with LangGraph agents
 - `packages/shared` — Shared TypeScript types (`@langgraph-fix-issues-pipeline/shared`)
 
 ## Build & Dev Commands
@@ -15,16 +15,16 @@ langgraph-fix-issues-pipeline is a LangGraph + Nx monorepo with a CLI app that r
 ```bash
 pnpm install              # Install all dependencies
 pnpm build                # Build all packages (shared builds first via Nx)
-pnpm cli:dev              # Run CLI with hot reload
-pnpm cli:build            # Build CLI for production
-pnpm cli:start            # Run compiled CLI
+pnpm worker:dev           # Run worker with hot reload
+pnpm worker:build         # Build worker for production
+pnpm worker:start         # Run compiled worker
 ```
 
 **Important:** Nx `dev` targets depend on `^build`, so shared packages build automatically before dev starts.
 
 ## Architecture
 
-### CLI (`apps/cli`)
+### Worker (`apps/worker`)
 
 - **Entry:** `src/index.ts` — loads env, compiles graph, invokes, logs result
 - **Agents:** LangGraph state machines in `src/agents/`
