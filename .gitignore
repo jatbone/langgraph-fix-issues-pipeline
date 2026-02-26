@@ -1,0 +1,19 @@
+# nx
+.nx/cache
+.nx/workspace-data
+
+# build
+dist
+
+# deps
+node_modules/
+
+# env
+.env
+.env.production
+
+# logs
+*.log
+
+# misc
+.DS_Store

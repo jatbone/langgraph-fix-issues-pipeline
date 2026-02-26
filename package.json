@@ -1,0 +1,16 @@
+{
+  "name": "langgraph-fix-issues-pipeline",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "cli:dev": "nx run cli:dev",
+    "cli:build": "nx run cli:build",
+    "cli:start": "nx run cli:start",
+    "build": "nx run-many --target=build --all --verbose"
+  },
+  "devDependencies": {
+    "nx": "20.5.0"
+  },
+  "packageManager": "pnpm@10.4.0"
+}
