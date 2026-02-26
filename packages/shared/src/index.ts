@@ -5,3 +5,4 @@
  */
 export * from "./utils.js";
 export * from "./graph.js";
+export * from "./issue.js";

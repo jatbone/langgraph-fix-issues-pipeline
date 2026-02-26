@@ -1,10 +1,10 @@
 /**
  * Node factory functions for the issue pipeline.
- * Single node that sends input text to Claude and returns the response.
  */
 
 import { ChatAnthropic } from "@langchain/anthropic";
 import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/shared/server";
+import { z } from "zod";
 import { buildImage, getImageName, getContainer, getDockerClient } from "../../docker/index.js";
 import { ISSUE_NODES, MAX_CONTAINER_CREATE_RETRIES } from "./constants.js";
 
@@ -37,11 +37,11 @@ export const createCreateContainerNode = () => {
 
 /**
  * Routing function for conditional edge after create_container.
- * Routes to issue node on success, retries on failure, or skips to cleanup.
+ * Routes to issue intake node on success, retries on failure, or skips to cleanup.
  */
 export const verifyContainer = (state: TIssuePipelineGraphState): string => {
   if (state.containerId) {
-    return ISSUE_NODES.ISSUE;
+    return ISSUE_NODES.ISSUE_INTAKE;
   }
 
   if (state.containerCreateRetries < MAX_CONTAINER_CREATE_RETRIES) {
@@ -76,22 +76,40 @@ export const createCleanupContainerNode = () => {
   };
 };
 
+const issueIntakeSchema = z.object({
+  title: z.string(),
+  requirements: z.array(z.string()),
+  ambiguities: z.array(z.string()),
+  complexity: z.enum(["low", "medium", "high"]),
+});
+
 /**
- * Issue node — sends the input text to Claude Haiku and returns the response.
+ * Issue Intake node — analyzes an issue and returns structured intake data.
  */
-export const createIssueNode = () => {
+export const createIssueIntakeNode = () => {
   return async (state: TIssuePipelineGraphState) => {
     const model = new ChatAnthropic({
       model: "claude-haiku-4-5-20251001",
       temperature: 0,
     });
 
-    const response = await model.invoke(state.inputText);
+    const structuredModel = model.withStructuredOutput(issueIntakeSchema);
 
-    return {
-      outputText: typeof response.content === "string"
-        ? response.content
-        : JSON.stringify(response.content),
-    };
+    const response = await structuredModel.invoke([
+      {
+        role: "system",
+        content: `You are an issue intake analyst. Given a raw issue description, analyze it and produce a structured intake report:
+- title: a concise title summarizing the issue
+- requirements: a list of concrete, actionable requirements extracted from the issue
+- ambiguities: a list of unclear or underspecified aspects that need clarification
+- complexity: classify as "low", "medium", or "high" based on scope, dependencies, and uncertainty`,
+      },
+      {
+        role: "user",
+        content: state.inputText,
+      },
+    ]);
+
+    return { issue: response };
   };
 };
