@@ -10,7 +10,7 @@
     "build": "nx run-many --target=build --all --verbose"
   },
   "devDependencies": {
-    "nx": "20.5.0"
+    "nx": "22.5.2"
   },
   "packageManager": "pnpm@10.4.0"
 }

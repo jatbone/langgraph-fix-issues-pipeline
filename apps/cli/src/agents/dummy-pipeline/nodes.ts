@@ -5,6 +5,54 @@
 
 import { ChatAnthropic } from "@langchain/anthropic";
 import type { TDummyPipelineGraphState } from "@langgraph-fix-issues-pipeline/shared/server";
+import { buildImage, getImageName, getContainer, getDockerClient } from "../../docker/index.js";
+
+/**
+ * Creates a Docker container and starts it with sleep infinity.
+ */
+export const createCreateContainerNode = () => {
+  return async (_state: TDummyPipelineGraphState) => {
+    await buildImage();
+
+    const docker = getDockerClient();
+    const name = `claude-runner-${Date.now()}`;
+    const container = await docker.createContainer({
+      name,
+      Image: getImageName(),
+      Cmd: ["sleep", "infinity"],
+    });
+
+    await container.start();
+    console.log(`Container started: ${container.id}`);
+
+    return { containerId: container.id };
+  };
+};
+
+/**
+ * Stops and removes the Docker container.
+ */
+export const createCleanupContainerNode = () => {
+  return async (state: TDummyPipelineGraphState) => {
+    const container = getContainer(state.containerId);
+
+    try {
+      await container.stop();
+    } catch {
+      // Container may already be stopped
+    }
+
+    try {
+      await container.remove();
+    } catch {
+      // Container may already be removed
+    }
+
+    console.log(`Container cleaned up: ${state.containerId}`);
+
+    return { containerId: "" };
+  };
+};
 
 /**
  * Dummy node — sends the input text to Claude Haiku and returns the response.

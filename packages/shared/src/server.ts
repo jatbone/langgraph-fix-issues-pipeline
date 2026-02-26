@@ -21,6 +21,11 @@ export const DummyPipelineState = Annotation.Root({
     reducer: (x, y) => y ?? x ?? "",
     default: () => "",
   }),
+  /** Docker container ID persisted across pipeline nodes */
+  containerId: Annotation<string>({
+    reducer: (x, y) => y ?? x ?? "",
+    default: () => "",
+  }),
 });
 
 export type TDummyPipelineGraphState = typeof DummyPipelineState.State;
