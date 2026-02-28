@@ -8,6 +8,7 @@ import type Docker from "dockerode";
 import { z, ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { execInContainer } from "../../docker/index.js";
+import { logger } from "./logger.js";
 
 const issueIntakeSchema = z.object({
   title: z.string().describe("Short descriptive title for the issue"),
@@ -49,8 +50,7 @@ export const createIssueIntakeNode = (docker: Docker, containerId: string) => {
       "--dangerously-skip-permissions",
     ]);
 
-    console.log("Issue intake json schema: ", JSON.stringify(issueIntakeJsonSchema))
-    console.log("Issue Intake — Claude CLI raw output:", cliOutput);
+    logger.log("issue_intake", "Claude CLI completed");
 
     try {
       const cliJson = JSON.parse(cliOutput);
@@ -63,10 +63,7 @@ export const createIssueIntakeNode = (docker: Docker, containerId: string) => {
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.warn(
-        `Issue Intake — failed (attempt ${state.issueIntakeAttempts + 1}):`,
-        { rawOutput: cliOutput, error: message },
-      );
+      logger.warn("issue_intake", "Failed", { attempt: state.issueIntakeAttempts + 1, error: message });
       return {
         issueIntakeAttempts: state.issueIntakeAttempts + 1,
         result: {

@@ -4,22 +4,11 @@
  */
 
 import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/shared/server";
+import { logger } from "./logger.js";
 
 export const createLogAndNotifyNode = () => {
   return async (state: TIssuePipelineGraphState) => {
-    if (state.result.errors.length > 0) {
-      console.error("Pipeline finished with errors:", state.result.errors);
-    } else {
-      console.log(
-        `Pipeline finished successfully — issue: "${state.issue?.title}"`,
-      );
-      if (state.coderResult) {
-        console.log(`  Summary: ${state.coderResult.summary}`);
-        console.log(`  Files changed: ${state.coderResult.filesChanged.join(", ")}`);
-        console.log(`  Tests passed: ${state.coderResult.testsPassed}`);
-      }
-    }
-
+    logger.summary(state);
     return {};
   };
 };

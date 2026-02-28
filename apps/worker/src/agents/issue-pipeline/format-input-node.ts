@@ -5,6 +5,7 @@
 import { ChatAnthropic } from "@langchain/anthropic";
 import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/shared/server";
 import { z, ZodError } from "zod";
+import { logger } from "./logger.js";
 
 const cleanedInputSchema = z.object({
   issueText: z.string(),
@@ -32,7 +33,7 @@ export const createFormatInputNode = () => {
         },
       ]);
 
-      console.log("Format Input — Cleaned input:", result);
+      logger.log("format_input", "Cleaned input", result);
 
       const parsed = cleanedInputSchema.parse(result);
 
@@ -44,7 +45,7 @@ export const createFormatInputNode = () => {
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.warn("Format Input — validation failed:", message);
+      logger.warn("format_input", "Validation failed", message);
       return {
         result: {
           errors: [

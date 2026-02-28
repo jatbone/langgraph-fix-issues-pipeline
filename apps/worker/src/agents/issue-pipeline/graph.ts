@@ -25,6 +25,7 @@ import {
   ISSUE_INTAKE_MAX_ATTEMPTS,
   ISSUE_NODES,
 } from "./constants.js";
+import { logger } from "./logger.js";
 
 /**
  * Creates a Docker container, starts it, and clones a repo into it.
@@ -71,7 +72,7 @@ export const prepareContainer = async () => {
       });
       await container.start();
       containerId = container.id;
-      console.log(`Container started: ${containerId}`);
+      logger.log("container", `Started: ${containerId}`);
 
       await execInContainer(docker, containerId, [
         "git",
@@ -79,7 +80,7 @@ export const prepareContainer = async () => {
         `https://x-access-token:${githubToken}@github.com/${githubRepo}.git`,
         "/workspace/repo",
       ]);
-      console.log("Repository cloned into container.");
+      logger.log("container", "Repository cloned");
 
       const info = await container.inspect();
       if (!info.State.Running) {
@@ -112,10 +113,7 @@ export const prepareContainer = async () => {
 
       return { docker, containerId };
     } catch (error) {
-      console.error(
-        `Container preparation failed (attempt ${attempt}/${COTAINER_CREATION_MAX_ATTEMPTS}):`,
-        error,
-      );
+      logger.error("container", `Preparation failed (attempt ${attempt}/${COTAINER_CREATION_MAX_ATTEMPTS})`, error);
       if (containerId) {
         await cleanupContainer(docker, containerId);
       }
@@ -139,15 +137,15 @@ export const cleanupContainer = async (docker: Docker, containerId: string) => {
     await container.stop();
   } catch {
     // Container may already be stopped
-    console.log(`Container already stopped: ${containerId}`);
+    logger.log("container", `Already stopped: ${containerId}`);
   }
   try {
     await container.remove();
   } catch {
     // Container may already be removed
-    console.log(`Container already removed: ${containerId}`);
+    logger.log("container", `Already removed: ${containerId}`);
   }
-  console.log(`Container cleaned up: ${containerId}`);
+  logger.log("container", `Cleaned up: ${containerId}`);
 };
 
 /**
