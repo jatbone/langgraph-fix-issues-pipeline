@@ -15,8 +15,11 @@ import {
 } from "../../docker/index.js";
 import { createFormatInputNode } from "./format-input-node.js";
 import { createIssueIntakeNode } from "./issue-intake-node.js";
+import { createPlanNode } from "./plan-node.js";
+import { createCoderNode } from "./coder-node.js";
 import { createLogAndNotifyNode } from "./log-and-notify-node.js";
 import {
+  CODER_MAX_ATTEMPTS,
   COTAINER_CREATION_MAX_ATTEMPTS,
   DEFAULT_ANTHROPIC_MODEL,
   ISSUE_INTAKE_MAX_ATTEMPTS,
@@ -157,6 +160,8 @@ export const setupIssuePipelineGraph = async () => {
   const graph = new StateGraph(IssuePipelineState)
     .addNode(ISSUE_NODES.FORMAT_INPUT, createFormatInputNode())
     .addNode(ISSUE_NODES.ISSUE_INTAKE, createIssueIntakeNode(docker, containerId))
+    .addNode(ISSUE_NODES.PLAN_GENERATION, createPlanNode(docker, containerId))
+    .addNode(ISSUE_NODES.CODE_IMPLEMENTATION, createCoderNode(docker, containerId))
     .addNode(ISSUE_NODES.LOG_AND_NOTIFY, createLogAndNotifyNode())
     .addEdge(START, ISSUE_NODES.FORMAT_INPUT)
     .addConditionalEdges(ISSUE_NODES.FORMAT_INPUT, (state) => {
@@ -168,10 +173,28 @@ export const setupIssuePipelineGraph = async () => {
     .addConditionalEdges(ISSUE_NODES.ISSUE_INTAKE, (state) => {
       const hasIntakeResult = state.issue?.title !== undefined;
       if (hasIntakeResult) {
-        return ISSUE_NODES.LOG_AND_NOTIFY;
+        return ISSUE_NODES.PLAN_GENERATION;
       }
       if (state.issueIntakeAttempts < ISSUE_INTAKE_MAX_ATTEMPTS) {
         return ISSUE_NODES.ISSUE_INTAKE;
+      }
+      return ISSUE_NODES.LOG_AND_NOTIFY;
+    })
+    .addConditionalEdges(ISSUE_NODES.PLAN_GENERATION, (state) => {
+      if (state.result.errors.length > 0) {
+        return ISSUE_NODES.LOG_AND_NOTIFY;
+      }
+      return ISSUE_NODES.CODE_IMPLEMENTATION;
+    })
+    .addConditionalEdges(ISSUE_NODES.CODE_IMPLEMENTATION, (state) => {
+      if (state.result.errors.length > 0) {
+        return ISSUE_NODES.LOG_AND_NOTIFY;
+      }
+      if (state.coderResult?.testsPassed) {
+        return ISSUE_NODES.LOG_AND_NOTIFY;
+      }
+      if (state.coderAttempts < CODER_MAX_ATTEMPTS) {
+        return ISSUE_NODES.CODE_IMPLEMENTATION;
       }
       return ISSUE_NODES.LOG_AND_NOTIFY;
     })
