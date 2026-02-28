@@ -1,8 +1,8 @@
 /**
- * Node factory functions for the issue pipeline.
+ * Issue Intake node — runs Claude CLI in a Docker container to analyze the issue
+ * with codebase context. On ZodError, stores error in state for conditional retry.
  */
 
-import { ChatAnthropic } from "@langchain/anthropic";
 import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/shared/server";
 import type Docker from "dockerode";
 import { z, ZodError } from "zod";
@@ -24,49 +24,6 @@ const issueIntakeSchema = z.object({
 
 const issueIntakeJsonSchema = zodToJsonSchema(issueIntakeSchema);
 
-const cleanedInputSchema = z.object({
-  issueText: z.string(),
-});
-
-/**
- * Format Input node — cleans and formats the raw issue text via LangChain on host.
- */
-export const createFormatInputNode = () => {
-  return async (state: TIssuePipelineGraphState) => {
-    const model = new ChatAnthropic({
-      model: "claude-haiku-4-5-20251001",
-      temperature: 0,
-    });
-
-    const structuredModel = model.withStructuredOutput(cleanedInputSchema);
-
-    const result = await structuredModel.invoke([
-      {
-        role: "system",
-        content:
-          "You are an input formatter. Given a raw issue description, clean it up into a well-structured issue description. PRESERVE all original meaning and details. DO NOT analyze, classify, or add information — ONLY clean and format.",
-      },
-      {
-        role: "user",
-        content: state.inputText,
-      },
-    ]);
-
-    console.log("Format Input — Cleaned input:", result);
-
-    return {
-      issue: {
-        text: state.inputText,
-        cleaned: result.issueText,
-      },
-    };
-  };
-};
-
-/**
- * Issue Intake node — runs Claude CLI in a Docker container to analyze the issue
- * with codebase context. On ZodError, stores error in state for conditional retry.
- */
 export const createIssueIntakeNode = (docker: Docker, containerId: string) => {
   return async (state: TIssuePipelineGraphState) => {
     const cleanedText = state.issue!.cleaned;

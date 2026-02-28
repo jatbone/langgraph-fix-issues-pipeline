@@ -13,7 +13,8 @@ import {
   getContainer,
   execInContainer,
 } from "../../docker/index.js";
-import { createFormatInputNode, createIssueIntakeNode } from "./nodes.js";
+import { createFormatInputNode } from "./format-input-node.js";
+import { createIssueIntakeNode } from "./issue-intake-node.js";
 import {
   COTAINER_CREATION_MAX_ATTEMPTS,
   DEFAULT_ANTHROPIC_MODEL,
