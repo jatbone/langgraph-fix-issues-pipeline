@@ -49,6 +49,7 @@ export const createIssueIntakeNode = (docker: Docker, containerId: string) => {
       "--dangerously-skip-permissions",
     ]);
 
+    console.log("Issue intake json schema: ", JSON.stringify(issueIntakeJsonSchema))
     console.log("Issue Intake — Claude CLI raw output:", cliOutput);
 
     try {

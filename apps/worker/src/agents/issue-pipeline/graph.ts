@@ -15,6 +15,7 @@ import {
 } from "../../docker/index.js";
 import { createFormatInputNode } from "./format-input-node.js";
 import { createIssueIntakeNode } from "./issue-intake-node.js";
+import { createLogAndNotifyNode } from "./log-and-notify-node.js";
 import {
   COTAINER_CREATION_MAX_ATTEMPTS,
   DEFAULT_ANTHROPIC_MODEL,
@@ -156,18 +157,25 @@ export const setupIssuePipelineGraph = async () => {
   const graph = new StateGraph(IssuePipelineState)
     .addNode(ISSUE_NODES.FORMAT_INPUT, createFormatInputNode())
     .addNode(ISSUE_NODES.ISSUE_INTAKE, createIssueIntakeNode(docker, containerId))
+    .addNode(ISSUE_NODES.LOG_AND_NOTIFY, createLogAndNotifyNode())
     .addEdge(START, ISSUE_NODES.FORMAT_INPUT)
-    .addEdge(ISSUE_NODES.FORMAT_INPUT, ISSUE_NODES.ISSUE_INTAKE)
+    .addConditionalEdges(ISSUE_NODES.FORMAT_INPUT, (state) => {
+      if (state.result.errors.length > 0) {
+        return ISSUE_NODES.LOG_AND_NOTIFY;
+      }
+      return ISSUE_NODES.ISSUE_INTAKE;
+    })
     .addConditionalEdges(ISSUE_NODES.ISSUE_INTAKE, (state) => {
       const hasIntakeResult = state.issue?.title !== undefined;
       if (hasIntakeResult) {
-        return END;
+        return ISSUE_NODES.LOG_AND_NOTIFY;
       }
       if (state.issueIntakeAttempts < ISSUE_INTAKE_MAX_ATTEMPTS) {
         return ISSUE_NODES.ISSUE_INTAKE;
       }
-      return END;
-    });
+      return ISSUE_NODES.LOG_AND_NOTIFY;
+    })
+    .addEdge(ISSUE_NODES.LOG_AND_NOTIFY, END);
 
   return { runner: graph.compile(), docker, containerId };
 };
