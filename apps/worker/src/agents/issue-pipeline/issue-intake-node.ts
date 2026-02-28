@@ -7,7 +7,7 @@ import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/sh
 import type Docker from "dockerode";
 import { z, ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { execInContainer } from "../../docker/index.js";
+import { streamExecInContainer } from "../../docker/index.js";
 import { logger } from "./logger.js";
 
 const issueIntakeSchema = z.object({
@@ -27,7 +27,11 @@ const issueIntakeJsonSchema = zodToJsonSchema(issueIntakeSchema);
 
 export const createIssueIntakeNode = (docker: Docker, containerId: string) => {
   return async (state: TIssuePipelineGraphState) => {
-    const cleanedText = state.issue!.cleaned;
+    if (!state.issue) {
+      throw new Error("issue_intake requires state.issue");
+    }
+
+    const cleanedText = state.issue.cleaned;
 
     const prompt = [
       "Here is an issue to analyze in the context of this codebase:",
@@ -37,25 +41,22 @@ export const createIssueIntakeNode = (docker: Docker, containerId: string) => {
       "Parse this issue, extract requirements, identify ambiguities, and classify complexity.",
     ].join("\n");
 
-    const cliOutput = await execInContainer(docker, containerId, [
-      "claude",
-      "-p",
-      prompt,
-      "--allowedTools",
-      "Bash,Read,Edit,Write,mcp",
-      "--output-format",
-      "json",
-      "--json-schema",
-      JSON.stringify(issueIntakeJsonSchema),
-      "--dangerously-skip-permissions",
-    ]);
-
-    logger.log("issue_intake", "Claude CLI completed");
-
     try {
-      const cliJson = JSON.parse(cliOutput);
-      const resultData = cliJson.structured_output;
-      const parsed = issueIntakeSchema.parse(resultData);
+      const result = await streamExecInContainer(docker, containerId, [
+        "claude",
+        "-p",
+        prompt,
+        "--allowedTools",
+        "Bash,Read,Edit,Write,mcp",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--json-schema",
+        JSON.stringify(issueIntakeJsonSchema),
+        "--dangerously-skip-permissions",
+      ], (event) => logger.cliEvent("issue_intake", event));
+
+      const parsed = issueIntakeSchema.parse(result.structured_output);
 
       return {
         issue: { ...state.issue, ...parsed },

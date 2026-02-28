@@ -7,7 +7,7 @@ import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/sh
 import type Docker from "dockerode";
 import { z, ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { execInContainer } from "../../docker/index.js";
+import { execInContainer, streamExecInContainer } from "../../docker/index.js";
 import { logger } from "./logger.js";
 
 const PLANNER_CONTRACT = `You are a software architect — analyze the codebase before proposing changes.
@@ -39,50 +39,50 @@ const issuePlanJsonSchema = zodToJsonSchema(issuePlanSchema);
 
 export const createPlanNode = (docker: Docker, containerId: string) => {
   return async (state: TIssuePipelineGraphState) => {
-    const issue = state.issue!;
-
-    const escapedContract = PLANNER_CONTRACT.replace(/'/g, "'\\''");
-    await execInContainer(docker, containerId, [
-      "sh",
-      "-c",
-      `echo '${escapedContract}' > /workspace/planner-rules.md`,
-    ]);
-
-    const prompt = [
-      `Issue: ${issue.title}`,
-      "",
-      "Requirements:",
-      ...issue.requirements.map((r) => `- ${r}`),
-      "",
-      "Ambiguities:",
-      ...issue.ambiguities.map((a) => `- ${a}`),
-      "",
-      `Complexity: ${issue.complexity}`,
-      "",
-      "Analyze the codebase and generate an implementation plan.",
-    ].join("\n");
-
-    const cliOutput = await execInContainer(docker, containerId, [
-      "claude",
-      "-p",
-      prompt,
-      "--allowedTools",
-      "Bash,Read,mcp",
-      "--output-format",
-      "json",
-      "--json-schema",
-      JSON.stringify(issuePlanJsonSchema),
-      "--append-system-prompt-file",
-      "/workspace/planner-rules.md",
-      "--dangerously-skip-permissions",
-    ]);
-
-    logger.log("plan_generation", "Claude CLI completed");
-
     try {
-      const cliJson = JSON.parse(cliOutput);
-      const resultData = cliJson.structured_output;
-      const parsed = issuePlanSchema.parse(resultData);
+      if (!state.issue) {
+        throw new Error("plan requires state.issue");
+      }
+      const issue = state.issue;
+
+      const escapedContract = PLANNER_CONTRACT.replace(/'/g, "'\\''");
+      await execInContainer(docker, containerId, [
+        "sh",
+        "-c",
+        `echo '${escapedContract}' > /workspace/planner-rules.md`,
+      ]);
+
+      const prompt = [
+        `Issue: ${issue.title}`,
+        "",
+        "Requirements:",
+        ...issue.requirements.map((r) => `- ${r}`),
+        "",
+        "Ambiguities:",
+        ...issue.ambiguities.map((a) => `- ${a}`),
+        "",
+        `Complexity: ${issue.complexity}`,
+        "",
+        "Analyze the codebase and generate an implementation plan.",
+      ].join("\n");
+
+      const result = await streamExecInContainer(docker, containerId, [
+        "claude",
+        "-p",
+        prompt,
+        "--allowedTools",
+        "Bash,Read,mcp",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--json-schema",
+        JSON.stringify(issuePlanJsonSchema),
+        "--append-system-prompt-file",
+        "/workspace/planner-rules.md",
+        "--dangerously-skip-permissions",
+      ], (event) => logger.cliEvent("plan_generation", event));
+
+      const parsed = issuePlanSchema.parse(result.structured_output);
 
       return { plan: parsed };
     } catch (error) {
