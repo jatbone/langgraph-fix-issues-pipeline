@@ -10,18 +10,19 @@
     "dev": "tsx watch src/index.ts"
   },
   "dependencies": {
+    "@langchain/anthropic": "^1.3.0",
     "@langchain/core": "^1.1.0",
     "@langchain/langgraph": "^1.0.2",
-    "@langchain/anthropic": "^1.3.0",
     "dockerode": "^4.0.4",
     "dotenv": "^16.4.7",
-    "zod": "^3.24.0"
+    "zod": "^3.24.0",
+    "zod-to-json-schema": "^3.25.1"
   },
   "devDependencies": {
+    "@langgraph-fix-issues-pipeline/shared": "workspace:*",
     "@types/dockerode": "^3.3.34",
     "@types/node": "^20.11.17",
     "tsx": "^4.7.1",
-    "typescript": "^5.3.3",
-    "@langgraph-fix-issues-pipeline/shared": "workspace:*"
+    "typescript": "^5.3.3"
   }
 }

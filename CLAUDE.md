@@ -53,6 +53,7 @@ See `.env.example`:
 - Avoid `any` — use precise types
 - Node factory functions: `createXxxNode()` returning async state handlers
 - All `.ts` imports use `.js` extensions (ESM + NodeNext)
+- Always use `{}` braces for `if`/`else`/`else if` blocks
 
 ## Key Patterns
 

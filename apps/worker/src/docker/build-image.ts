@@ -1,15 +1,13 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { getDockerClient } from "./client.js";
+import type Docker from "dockerode";
 
 const IMAGE_NAME = "claude-code-runner";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export const getImageName = (): string => IMAGE_NAME;
 
-export const buildImage = async (): Promise<void> => {
-  const docker = getDockerClient();
-
+export const buildImage = async (docker: Docker): Promise<void> => {
   const images = await docker.listImages({
     filters: { reference: [IMAGE_NAME] },
   });
