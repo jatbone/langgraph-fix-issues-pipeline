@@ -13,6 +13,11 @@ export const createLogAndNotifyNode = () => {
       console.log(
         `Pipeline finished successfully — issue: "${state.issue?.title}"`,
       );
+      if (state.coderResult) {
+        console.log(`  Summary: ${state.coderResult.summary}`);
+        console.log(`  Files changed: ${state.coderResult.filesChanged.join(", ")}`);
+        console.log(`  Tests passed: ${state.coderResult.testsPassed}`);
+      }
     }
 
     return {};

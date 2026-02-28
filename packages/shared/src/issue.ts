@@ -18,3 +18,23 @@ export type TPipelineError = {
 export type TPipelineResult = {
   errors: TPipelineError[];
 };
+
+export type TIssuePlanRisk = {
+  description: string;
+  severity: "low" | "medium" | "high";
+};
+
+export type TIssuePlan = {
+  approach: string;
+  steps: string[];
+  risks: TIssuePlanRisk[];
+  estimatedScope: "trivial" | "small" | "medium" | "large";
+  filesToModify: string[];
+};
+
+export type TCoderResult = {
+  summary: string;
+  filesChanged: string[];
+  testsPassed: boolean;
+  testErrorSummary?: string;
+};
