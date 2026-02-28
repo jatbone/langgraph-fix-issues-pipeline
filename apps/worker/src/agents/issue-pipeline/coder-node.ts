@@ -7,7 +7,7 @@ import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/sh
 import type Docker from "dockerode";
 import { z, ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { execInContainer } from "../../docker/index.js";
+import { execInContainer, streamExecInContainer } from "../../docker/index.js";
 import { logger } from "./logger.js";
 
 const CODER_CONTRACT = `Follow existing code conventions, patterns, and architecture.
@@ -33,66 +33,69 @@ const coderResultJsonSchema = zodToJsonSchema(coderResultSchema);
 
 export const createCoderNode = (docker: Docker, containerId: string) => {
   return async (state: TIssuePipelineGraphState) => {
-    const issue = state.issue!;
-    const plan = state.plan!;
-
-    const escapedContract = CODER_CONTRACT.replace(/'/g, "'\\''");
-    await execInContainer(docker, containerId, [
-      "sh",
-      "-c",
-      `echo '${escapedContract}' > /workspace/coder-rules.md`,
-    ]);
-
-    const promptParts = [
-      `Issue: ${issue.title}`,
-      "",
-      "Requirements:",
-      ...issue.requirements.map((r) => `- ${r}`),
-      "",
-      `Approach: ${plan.approach}`,
-      "",
-      "Steps:",
-      ...plan.steps.map((s, i) => `${i + 1}. ${s}`),
-      "",
-      "Files to modify:",
-      ...plan.filesToModify.map((f) => `- ${f}`),
-      "",
-      "Implement all changes, run tests, and return the result.",
-    ];
-
-    if (state.coderAttempts > 0 && state.coderResult?.testErrorSummary) {
-      promptParts.push(
-        "",
-        "PREVIOUS ATTEMPT FAILED — test errors from last run:",
-        state.coderResult.testErrorSummary,
-        "",
-        "Fix these test failures and try again.",
-      );
-    }
-
-    const prompt = promptParts.join("\n");
-
-    const cliOutput = await execInContainer(docker, containerId, [
-      "claude",
-      "-p",
-      prompt,
-      "--allowedTools",
-      "Bash,Read,Edit,Write,mcp",
-      "--output-format",
-      "json",
-      "--json-schema",
-      JSON.stringify(coderResultJsonSchema),
-      "--append-system-prompt-file",
-      "/workspace/coder-rules.md",
-      "--dangerously-skip-permissions",
-    ]);
-
-    logger.log("code_implementation", "Claude CLI completed");
-
     try {
-      const cliJson = JSON.parse(cliOutput);
-      const resultData = cliJson.structured_output;
-      const parsed = coderResultSchema.parse(resultData);
+      if (!state.issue) {
+        throw new Error("coder requires state.issue");
+      }
+      if (!state.plan) {
+        throw new Error("coder requires state.plan");
+      }
+      const issue = state.issue;
+      const plan = state.plan;
+
+      const escapedContract = CODER_CONTRACT.replace(/'/g, "'\\''");
+      await execInContainer(docker, containerId, [
+        "sh",
+        "-c",
+        `echo '${escapedContract}' > /workspace/coder-rules.md`,
+      ]);
+
+      const promptParts = [
+        `Issue: ${issue.title}`,
+        "",
+        "Requirements:",
+        ...issue.requirements.map((r) => `- ${r}`),
+        "",
+        `Approach: ${plan.approach}`,
+        "",
+        "Steps:",
+        ...plan.steps.map((s, i) => `${i + 1}. ${s}`),
+        "",
+        "Files to modify:",
+        ...plan.filesToModify.map((f) => `- ${f}`),
+        "",
+        "Implement all changes, run tests, and return the result.",
+      ];
+
+      if (state.coderAttempts > 0 && state.coderResult?.testErrorSummary) {
+        promptParts.push(
+          "",
+          "PREVIOUS ATTEMPT FAILED — test errors from last run:",
+          state.coderResult.testErrorSummary,
+          "",
+          "Fix these test failures and try again.",
+        );
+      }
+
+      const prompt = promptParts.join("\n");
+
+      const result = await streamExecInContainer(docker, containerId, [
+        "claude",
+        "-p",
+        prompt,
+        "--allowedTools",
+        "Bash,Read,Edit,Write,mcp",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--json-schema",
+        JSON.stringify(coderResultJsonSchema),
+        "--append-system-prompt-file",
+        "/workspace/coder-rules.md",
+        "--dangerously-skip-permissions",
+      ], (event) => logger.cliEvent("code_implementation", event));
+
+      const parsed = coderResultSchema.parse(result.structured_output);
 
       return {
         coderResult: parsed,
