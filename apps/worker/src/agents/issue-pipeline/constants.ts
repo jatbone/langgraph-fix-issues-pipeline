@@ -12,4 +12,5 @@ export const ISSUE_INTAKE_MAX_ATTEMPTS = 2;
 export const ISSUE_NODES = {
   FORMAT_INPUT: "format_input",
   ISSUE_INTAKE: "issue_intake",
+  LOG_AND_NOTIFY: "log_and_notify",
 } as const;
