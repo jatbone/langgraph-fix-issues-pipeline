@@ -1,4 +1,4 @@
 /**
  * Issue Pipeline barrel export.
  */
-export { setupIssuePipelineGraph } from "./graph.js";
+export { setupIssuePipelineGraph, cleanupContainer } from "./graph.js";

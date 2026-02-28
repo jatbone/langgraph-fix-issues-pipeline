@@ -4,105 +4,47 @@
 
 import { ChatAnthropic } from "@langchain/anthropic";
 import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/shared/server";
-import { z } from "zod";
-import { buildImage, getImageName, getContainer, getDockerClient } from "../../docker/index.js";
-import { ISSUE_NODES, MAX_CONTAINER_CREATE_RETRIES } from "./constants.js";
-
-/**
- * Creates a Docker container and starts it with sleep infinity.
- */
-export const createCreateContainerNode = () => {
-  return async (state: TIssuePipelineGraphState) => {
-    try {
-      await buildImage();
-
-      const docker = getDockerClient();
-      const name = `claude-runner-${Date.now()}`;
-      const container = await docker.createContainer({
-        name,
-        Image: getImageName(),
-        Cmd: ["sleep", "infinity"],
-      });
-
-      await container.start();
-      console.log(`Container started: ${container.id}`);
-
-      return { containerId: container.id };
-    } catch (error) {
-      console.error(`Container creation failed (attempt ${state.containerCreateRetries + 1}):`, error);
-      return { containerId: "", containerCreateRetries: state.containerCreateRetries + 1 };
-    }
-  };
-};
-
-/**
- * Routing function for conditional edge after create_container.
- * Routes to issue intake node on success, retries on failure, or skips to cleanup.
- */
-export const verifyContainer = (state: TIssuePipelineGraphState): string => {
-  if (state.containerId) {
-    return ISSUE_NODES.ISSUE_INTAKE;
-  }
-
-  if (state.containerCreateRetries < MAX_CONTAINER_CREATE_RETRIES) {
-    return ISSUE_NODES.CREATE_CONTAINER;
-  }
-
-  return ISSUE_NODES.CLEANUP_CONTAINER;
-};
-
-/**
- * Stops and removes the Docker container.
- */
-export const createCleanupContainerNode = () => {
-  return async (state: TIssuePipelineGraphState) => {
-    const container = getContainer(state.containerId);
-
-    try {
-      await container.stop();
-    } catch {
-      // Container may already be stopped
-    }
-
-    try {
-      await container.remove();
-    } catch {
-      // Container may already be removed
-    }
-
-    console.log(`Container cleaned up: ${state.containerId}`);
-
-    return { containerId: "" };
-  };
-};
+import type Docker from "dockerode";
+import { z, ZodError } from "zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
+import { execInContainer } from "../../docker/index.js";
 
 const issueIntakeSchema = z.object({
-  title: z.string(),
-  requirements: z.array(z.string()),
-  ambiguities: z.array(z.string()),
-  complexity: z.enum(["low", "medium", "high"]),
+  title: z.string().describe("Short descriptive title for the issue"),
+  requirements: z
+    .array(z.string())
+    .describe("List of extracted requirements from the issue"),
+  ambiguities: z
+    .array(z.string())
+    .describe("List of identified ambiguities or unclear aspects"),
+  complexity: z
+    .enum(["low", "medium", "high"])
+    .describe("Estimated complexity of the issue"),
+});
+
+const issueIntakeJsonSchema = zodToJsonSchema(issueIntakeSchema);
+
+const cleanedInputSchema = z.object({
+  issueText: z.string(),
 });
 
 /**
- * Issue Intake node — analyzes an issue and returns structured intake data.
+ * Format Input node — cleans and formats the raw issue text via LangChain on host.
  */
-export const createIssueIntakeNode = () => {
+export const createFormatInputNode = () => {
   return async (state: TIssuePipelineGraphState) => {
     const model = new ChatAnthropic({
       model: "claude-haiku-4-5-20251001",
       temperature: 0,
     });
 
-    const structuredModel = model.withStructuredOutput(issueIntakeSchema);
+    const structuredModel = model.withStructuredOutput(cleanedInputSchema);
 
-    const response = await structuredModel.invoke([
+    const result = await structuredModel.invoke([
       {
         role: "system",
-        content: `You are an issue intake analyst. Given a raw issue description, analyze it and produce a structured intake report:
-- title: a concise title summarizing the issue
-- requirements: a list of concrete, actionable requirements extracted from the issue
-- ambiguities: a list of unclear or underspecified aspects that need clarification
-- complexity: classify as "low", "medium", or "high" based on scope, dependencies, and uncertainty`,
+        content:
+          "You are an input formatter. Given a raw issue description, clean it up into a well-structured issue description. PRESERVE all original meaning and details. DO NOT analyze, classify, or add information — ONLY clean and format.",
       },
       {
         role: "user",
@@ -110,6 +52,75 @@ export const createIssueIntakeNode = () => {
       },
     ]);
 
-    return { issue: { ...response, inputText: state.inputText } };
+    console.log("Format Input — Cleaned input:", result);
+
+    return {
+      issue: {
+        text: state.inputText,
+        cleaned: result.issueText,
+      },
+    };
+  };
+};
+
+/**
+ * Issue Intake node — runs Claude CLI in a Docker container to analyze the issue
+ * with codebase context. On ZodError, stores error in state for conditional retry.
+ */
+export const createIssueIntakeNode = (docker: Docker, containerId: string) => {
+  return async (state: TIssuePipelineGraphState) => {
+    const cleanedText = state.issue!.cleaned;
+
+    const prompt = [
+      "Here is an issue to analyze in the context of this codebase:",
+      "",
+      cleanedText,
+      "",
+      "Parse this issue, extract requirements, identify ambiguities, and classify complexity.",
+    ].join("\n");
+
+    const cliOutput = await execInContainer(docker, containerId, [
+      "claude",
+      "-p",
+      prompt,
+      "--allowedTools",
+      "Bash,Read,Edit,Write,mcp",
+      "--output-format",
+      "json",
+      "--json-schema",
+      JSON.stringify(issueIntakeJsonSchema),
+      "--dangerously-skip-permissions",
+    ]);
+
+    console.log("Issue Intake — Claude CLI raw output:", cliOutput);
+
+    try {
+      const cliJson = JSON.parse(cliOutput);
+      const resultData = cliJson.structured_output;
+      const parsed = issueIntakeSchema.parse(resultData);
+
+      return {
+        issue: { ...state.issue, ...parsed },
+        issueIntakeAttempts: state.issueIntakeAttempts + 1,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(
+        `Issue Intake — failed (attempt ${state.issueIntakeAttempts + 1}):`,
+        { rawOutput: cliOutput, error: message },
+      );
+      return {
+        issueIntakeAttempts: state.issueIntakeAttempts + 1,
+        result: {
+          errors: [
+            {
+              node: "issue_intake",
+              message,
+              details: error instanceof ZodError ? error.issues : undefined,
+            },
+          ],
+        },
+      };
+    }
   };
 };

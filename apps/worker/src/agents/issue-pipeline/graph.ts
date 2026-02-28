@@ -1,30 +1,172 @@
 /**
- * Issue Pipeline graph definition.
- * START → create_container → [verify] → issue_intake → cleanup_container → END
- *                              ↑ retry (up to 2×) ↓
- *                              └──────────────────┘
+ * Issue Pipeline graph definition and container lifecycle helpers.
+ * Container setup/teardown happens outside the graph; the graph only contains pipeline logic.
  */
 
 import { StateGraph, END, START } from "@langchain/langgraph";
 import { IssuePipelineState } from "@langgraph-fix-issues-pipeline/shared/server";
-import { createCreateContainerNode, createIssueIntakeNode, createCleanupContainerNode, verifyContainer } from "./nodes.js";
-import { ISSUE_NODES } from "./constants.js";
+import type Docker from "dockerode";
+import {
+  createDockerClient,
+  buildImage,
+  getImageName,
+  getContainer,
+  execInContainer,
+} from "../../docker/index.js";
+import { createFormatInputNode, createIssueIntakeNode } from "./nodes.js";
+import {
+  COTAINER_CREATION_MAX_ATTEMPTS,
+  DEFAULT_ANTHROPIC_MODEL,
+  ISSUE_INTAKE_MAX_ATTEMPTS,
+  ISSUE_NODES,
+} from "./constants.js";
 
-export const setupIssuePipelineGraph = () => {
-  const createContainerNode = createCreateContainerNode();
-  const issueIntakeNode = createIssueIntakeNode();
-  const cleanupContainerNode = createCleanupContainerNode();
+/**
+ * Creates a Docker container, starts it, and clones a repo into it.
+ * Retries up to COTAINER_CREATION_MAX_ATTEMPTS times on failure.
+ */
+export const prepareContainer = async () => {
+  const githubToken = process.env.GITHUB_TOKEN;
+  const githubRepo = process.env.GITHUB_REPO;
+  const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+  const anthropicModel = process.env.ANTHROPIC_MODEL || DEFAULT_ANTHROPIC_MODEL;
 
-  return new StateGraph(IssuePipelineState)
-    .addNode(ISSUE_NODES.CREATE_CONTAINER, createContainerNode)
-    .addNode(ISSUE_NODES.ISSUE_INTAKE, issueIntakeNode)
-    .addNode(ISSUE_NODES.CLEANUP_CONTAINER, cleanupContainerNode)
-    .addEdge(START, ISSUE_NODES.CREATE_CONTAINER)
-    .addConditionalEdges(ISSUE_NODES.CREATE_CONTAINER, verifyContainer, {
-      [ISSUE_NODES.ISSUE_INTAKE]: ISSUE_NODES.ISSUE_INTAKE,
-      [ISSUE_NODES.CREATE_CONTAINER]: ISSUE_NODES.CREATE_CONTAINER,
-      [ISSUE_NODES.CLEANUP_CONTAINER]: ISSUE_NODES.CLEANUP_CONTAINER,
-    })
-    .addEdge(ISSUE_NODES.ISSUE_INTAKE, ISSUE_NODES.CLEANUP_CONTAINER)
-    .addEdge(ISSUE_NODES.CLEANUP_CONTAINER, END);
+  if (!anthropicApiKey) {
+    throw new Error(
+      "ANTHROPIC_API_KEY is not set in the environment variables",
+    );
+  }
+
+  if (!githubToken) {
+    throw new Error("GITHUB_TOKEN is not set in the environment variables");
+  }
+
+  if (!githubRepo) {
+    throw new Error("GITHUB_REPO is not set in the environment variables");
+  }
+
+  const docker = createDockerClient();
+  await buildImage(docker);
+
+  for (let attempt = 1; attempt <= COTAINER_CREATION_MAX_ATTEMPTS; attempt++) {
+    let containerId = "";
+    try {
+      const name = `claude-runner-${Date.now()}`;
+
+      const env = [
+        `ANTHROPIC_API_KEY=${anthropicApiKey}`,
+        `ANTHROPIC_MODEL=${anthropicModel}`,
+      ];
+
+      const container = await docker.createContainer({
+        name,
+        Image: getImageName(),
+        Cmd: ["sleep", "infinity"],
+        Env: env,
+      });
+      await container.start();
+      containerId = container.id;
+      console.log(`Container started: ${containerId}`);
+
+      await execInContainer(docker, containerId, [
+        "git",
+        "clone",
+        `https://x-access-token:${githubToken}@github.com/${githubRepo}.git`,
+        "/workspace/repo",
+      ]);
+      console.log("Repository cloned into container.");
+
+      const info = await container.inspect();
+      if (!info.State.Running) {
+        throw new Error("Container not running after clone");
+      }
+      await execInContainer(docker, containerId, [
+        "test",
+        "-d",
+        "/workspace/repo/.git",
+      ]);
+
+      // Write .mcp.json for GitHub MCP server
+      const mcpConfig = JSON.stringify({
+        mcpServers: {
+          github: {
+            command: "npx",
+            args: ["-y", "@modelcontextprotocol/server-github"],
+            env: {
+              GITHUB_PERSONAL_ACCESS_TOKEN: githubToken,
+            },
+          },
+        },
+      });
+      const escapedMcpConfig = mcpConfig.replace(/'/g, "'\\''");
+      await execInContainer(docker, containerId, [
+        "sh",
+        "-c",
+        `echo '${escapedMcpConfig}' > /workspace/.mcp.json`,
+      ]);
+
+      return { docker, containerId };
+    } catch (error) {
+      console.error(
+        `Container preparation failed (attempt ${attempt}/${COTAINER_CREATION_MAX_ATTEMPTS}):`,
+        error,
+      );
+      if (containerId) {
+        await cleanupContainer(docker, containerId);
+      }
+      if (attempt === COTAINER_CREATION_MAX_ATTEMPTS) {
+        throw new Error(
+          `Failed to prepare container after ${COTAINER_CREATION_MAX_ATTEMPTS} attempts`,
+        );
+      }
+    }
+  }
+
+  throw new Error("Failed to prepare container");
+};
+
+/**
+ * Stops and removes a Docker container.
+ */
+export const cleanupContainer = async (docker: Docker, containerId: string) => {
+  const container = getContainer(docker, containerId);
+  try {
+    await container.stop();
+  } catch {
+    // Container may already be stopped
+    console.log(`Container already stopped: ${containerId}`);
+  }
+  try {
+    await container.remove();
+  } catch {
+    // Container may already be removed
+    console.log(`Container already removed: ${containerId}`);
+  }
+  console.log(`Container cleaned up: ${containerId}`);
+};
+
+/**
+ * Prepares the container, builds the issue pipeline graph, and returns
+ * the compiled runner along with cleanup handles.
+ */
+export const setupIssuePipelineGraph = async () => {
+  const { docker, containerId } = await prepareContainer();
+
+  const graph = new StateGraph(IssuePipelineState)
+    .addNode(ISSUE_NODES.FORMAT_INPUT, createFormatInputNode())
+    .addNode(ISSUE_NODES.ISSUE_INTAKE, createIssueIntakeNode(docker, containerId))
+    .addEdge(START, ISSUE_NODES.FORMAT_INPUT)
+    .addEdge(ISSUE_NODES.FORMAT_INPUT, ISSUE_NODES.ISSUE_INTAKE)
+    .addConditionalEdges(ISSUE_NODES.ISSUE_INTAKE, (state) => {
+      const hasIntakeResult = state.issue?.title !== undefined;
+      if (hasIntakeResult) {
+        return END;
+      }
+      if (state.issueIntakeAttempts < ISSUE_INTAKE_MAX_ATTEMPTS) {
+        return ISSUE_NODES.ISSUE_INTAKE;
+      }
+      return END;
+    });
+
+  return { runner: graph.compile(), docker, containerId };
 };

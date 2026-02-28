@@ -5,14 +5,14 @@
  */
 
 import { Annotation } from "@langchain/langgraph";
-import type { TIssueIntake } from "./issue.js";
-export type { TIssueIntake } from "./issue.js";
+import type { TIssueIntake, TPipelineResult } from "./issue.js";
+export type { TIssueIntake, TPipelineResult } from "./issue.js";
 
 /**
  * Issue Pipeline graph state.
  */
 export const IssuePipelineState = Annotation.Root({
-  /** Raw issue input text */
+  /** Raw issue text */
   inputText: Annotation<string>({
     reducer: (x, y) => y ?? x ?? "",
     default: () => "",
@@ -22,13 +22,13 @@ export const IssuePipelineState = Annotation.Root({
     reducer: (x, y) => y ?? x ?? null,
     default: () => null,
   }),
-  /** Docker container ID persisted across pipeline nodes */
-  containerId: Annotation<string>({
-    reducer: (x, y) => y ?? x ?? "",
-    default: () => "",
+  /** Pipeline result with collected errors */
+  result: Annotation<TPipelineResult>({
+    reducer: (x, y) => y ?? x ?? { errors: [] },
+    default: () => ({ errors: [] }),
   }),
-  /** Number of container creation retries attempted */
-  containerCreateRetries: Annotation<number>({
+  /** Number of issue intake attempts (for conditional retry) */
+  issueIntakeAttempts: Annotation<number>({
     reducer: (x, y) => y ?? x ?? 0,
     default: () => 0,
   }),
