@@ -41,15 +41,11 @@ const main = async () => {
     docker = newDockerInstance;
     containerId = newContainerId;
 
-    const result = await runner.invoke({
+    await runner.invoke({
       inputText: "Change the background color of the page to red.",
     });
 
-    console.log("Issue Intake Result:");
-    console.log("  Title:", result.issue?.title);
-    console.log("  Requirements:", result.issue?.requirements);
-    console.log("  Ambiguities:", result.issue?.ambiguities);
-    console.log("  Complexity:", result.issue?.complexity);
+    console.log("Pipeline execution completed.");
   } catch (error) {
     console.error("Error running issue pipeline:", error);
   } finally {

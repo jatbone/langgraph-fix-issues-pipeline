@@ -8,6 +8,7 @@ import type Docker from "dockerode";
 import { z, ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { execInContainer } from "../../docker/index.js";
+import { logger } from "./logger.js";
 
 const PLANNER_CONTRACT = `You are a software architect — analyze the codebase before proposing changes.
 Propose a single, clear implementation approach.
@@ -76,7 +77,7 @@ export const createPlanNode = (docker: Docker, containerId: string) => {
       "--dangerously-skip-permissions",
     ]);
 
-    console.log("Plan — Claude CLI raw output:", cliOutput);
+    logger.log("plan_generation", "Claude CLI completed");
 
     try {
       const cliJson = JSON.parse(cliOutput);
@@ -86,7 +87,7 @@ export const createPlanNode = (docker: Docker, containerId: string) => {
       return { plan: parsed };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.warn("Plan — failed:", { rawOutput: cliOutput, error: message });
+      logger.warn("plan_generation", "Failed", { error: message });
       return {
         result: {
           errors: [

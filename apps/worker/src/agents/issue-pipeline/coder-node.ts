@@ -8,6 +8,7 @@ import type Docker from "dockerode";
 import { z, ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { execInContainer } from "../../docker/index.js";
+import { logger } from "./logger.js";
 
 const CODER_CONTRACT = `Follow existing code conventions, patterns, and architecture.
 Do not introduce unnecessary dependencies.
@@ -86,7 +87,7 @@ export const createCoderNode = (docker: Docker, containerId: string) => {
       "--dangerously-skip-permissions",
     ]);
 
-    console.log("Coder — Claude CLI raw output:", cliOutput);
+    logger.log("code_implementation", "Claude CLI completed");
 
     try {
       const cliJson = JSON.parse(cliOutput);
@@ -99,10 +100,7 @@ export const createCoderNode = (docker: Docker, containerId: string) => {
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.warn(
-        `Coder — failed (attempt ${state.coderAttempts + 1}):`,
-        { rawOutput: cliOutput, error: message },
-      );
+      logger.warn("code_implementation", "Failed", { attempt: state.coderAttempts + 1, error: message });
       return {
         coderAttempts: state.coderAttempts + 1,
         result: {
