@@ -63,7 +63,7 @@ export const logger = {
   },
 
   cliEvent(node: string, event: TStreamEvent): void {
-    const prefix = `[${node}]   ↳ `;
+    const prefix = `[${node}] ↳ `;
 
     if (event.type === "assistant") {
       const message = event.message as { content?: unknown } | undefined;
