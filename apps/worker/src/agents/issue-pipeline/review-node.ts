@@ -51,11 +51,12 @@ export const createReviewNode = (docker: Docker, containerId: string) => {
         "git", "-C", "/workspace/repo", "branch", "--show-current",
       ])).trim();
       if (currentBranch !== state.baseBranch) {
-        throw new Error(
-          `Branch mismatch: expected "${state.baseBranch}" but currently on "${currentBranch}". Aborting to prevent working on the wrong branch.`,
-        );
+        logger.log("code_review", `Branch mismatch: on "${currentBranch}", checking out "${state.baseBranch}"`);
+        await execInContainer(docker, containerId, [
+          "git", "-C", "/workspace/repo", "checkout", state.baseBranch,
+        ]);
       }
-      logger.log("code_review", `Branch verified: ${currentBranch}`);
+      logger.log("code_review", `Branch verified: ${state.baseBranch}`);
 
       const issue = state.issue;
       const plan = state.plan;

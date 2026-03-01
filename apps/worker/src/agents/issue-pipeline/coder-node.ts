@@ -30,22 +30,36 @@ export const createCoderNode = (docker: Docker, containerId: string) => {
       if (!state.plan) {
         throw new Error("coder requires state.plan");
       }
-      const issue = state.issue;
-      const plan = state.plan;
-
       if (!state.baseBranch) {
         throw new Error("coder requires state.baseBranch");
       }
 
-      const currentBranch = (await execInContainer(docker, containerId, [
-        "git", "-C", "/workspace/repo", "branch", "--show-current",
-      ])).trim();
+      const issue = state.issue;
+      const plan = state.plan;
+
+      const currentBranch = (
+        await execInContainer(docker, containerId, [
+          "git",
+          "-C",
+          "/workspace/repo",
+          "branch",
+          "--show-current",
+        ])
+      ).trim();
       if (currentBranch !== state.baseBranch) {
-        throw new Error(
-          `Branch mismatch: expected "${state.baseBranch}" but currently on "${currentBranch}". Aborting to prevent working on the wrong branch.`,
+        logger.log(
+          "code_implementation",
+          `Branch mismatch: on "${currentBranch}", checking out "${state.baseBranch}"`,
         );
+        await execInContainer(docker, containerId, [
+          "git",
+          "-C",
+          "/workspace/repo",
+          "checkout",
+          state.baseBranch,
+        ]);
       }
-      logger.log("code_implementation", `Branch verified: ${currentBranch}`);
+      logger.log("code_implementation", `Branch verified: ${state.baseBranch}`);
 
       logger.log("code_implementation", "Installing dependencies…");
       await execInContainer(docker, containerId, [
@@ -90,11 +104,17 @@ export const createCoderNode = (docker: Docker, containerId: string) => {
           "",
           ...state.reviewResult.findings
             .filter((f) => f.severity === "error" || f.severity === "warning")
-            .map((f) => `- [${f.severity}] ${f.file}:${f.line} (${f.category}): ${f.message}`),
+            .map(
+              (f) =>
+                `- [${f.severity}] ${f.file}:${f.line} (${f.category}): ${f.message}`,
+            ),
           "",
           "Fix all error-severity findings and address warnings where possible.",
         );
-        if (!state.reviewResult.testsPassed && state.reviewResult.testErrorSummary) {
+        if (
+          !state.reviewResult.testsPassed &&
+          state.reviewResult.testErrorSummary
+        ) {
           promptParts.push(
             "",
             "TEST FAILURES from review:",
@@ -107,25 +127,33 @@ export const createCoderNode = (docker: Docker, containerId: string) => {
 
       const prompt = promptParts.join("\n");
 
-      const result = await streamExecInContainer(docker, containerId, [
-        "claude",
-        "-p",
-        prompt,
-        "--allowedTools",
-        "Bash,Read,Edit,Write,mcp",
-        "--output-format",
-        "stream-json",
-        "--verbose",
-        "--json-schema",
-        JSON.stringify(coderResultJsonSchema),
-        "--append-system-prompt-file",
-        "/workspace/coder-rules.md",
-        "--dangerously-skip-permissions",
-      ], (event) => logger.cliEvent("code_implementation", event));
+      const result = await streamExecInContainer(
+        docker,
+        containerId,
+        [
+          "claude",
+          "-p",
+          prompt,
+          "--allowedTools",
+          "Bash,Read,Edit,Write,mcp",
+          "--output-format",
+          "stream-json",
+          "--verbose",
+          "--json-schema",
+          JSON.stringify(coderResultJsonSchema),
+          "--append-system-prompt-file",
+          "/workspace/coder-rules.md",
+          "--dangerously-skip-permissions",
+        ],
+        (event) => logger.cliEvent("code_implementation", event),
+      );
 
       const parsed = coderResultSchema.parse(result.structured_output);
       logger.log("code_implementation", "Result", parsed);
-      logger.nodeEnd("code_implementation", `${parsed.filesChanged.length} file(s) changed`);
+      logger.nodeEnd(
+        "code_implementation",
+        `${parsed.filesChanged.length} file(s) changed`,
+      );
 
       return {
         coderResult: parsed,
@@ -133,7 +161,10 @@ export const createCoderNode = (docker: Docker, containerId: string) => {
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      logger.warn("code_implementation", "Failed", { attempt: state.coderAttempts + 1, error: message });
+      logger.warn("code_implementation", "Failed", {
+        attempt: state.coderAttempts + 1,
+        error: message,
+      });
       return {
         coderAttempts: state.coderAttempts + 1,
         result: {
