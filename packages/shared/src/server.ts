@@ -17,6 +17,11 @@ export const IssuePipelineState = Annotation.Root({
     reducer: (x, y) => y ?? x ?? "",
     default: () => "",
   }),
+  /** Base branch the pipeline operates on */
+  baseBranch: Annotation<string>({
+    reducer: (x, y) => y ?? x ?? "",
+    default: () => "",
+  }),
   /** Structured issue intake result */
   issue: Annotation<TIssueIntake | null>({
     reducer: (x, y) => y ?? x ?? null,

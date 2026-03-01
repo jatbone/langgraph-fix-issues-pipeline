@@ -25,6 +25,7 @@ Before writing any code, verify that all project dependencies are installed corr
 - Do NOT proceed with implementation until dependencies are installed.
 
 ## Rules
+- NEVER run \`git push\` under any circumstances — pushing to the remote is strictly prohibited in this pipeline.
 - Do NOT run tests — testing is handled by a separate review step.
 - Do NOT add, remove, or modify dependencies unless the plan explicitly requires it.
 - Do NOT refactor code outside the scope of the plan.
@@ -44,6 +45,7 @@ Before reviewing or running tests, verify that all project dependencies are inst
 - If dependencies are missing, run the appropriate install command.
 
 ## Rules
+- NEVER run \`git push\` under any circumstances — pushing to the remote is strictly prohibited in this pipeline.
 - Do NOT modify any code — you are strictly read-only.
 - Do NOT suggest improvements beyond what the diff introduces.
 - Do NOT approve if there are any "error" severity findings or test failures.

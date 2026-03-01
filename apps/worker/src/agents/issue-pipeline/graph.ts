@@ -24,6 +24,7 @@ import {
   REVIEW_MAX_ATTEMPTS,
   COTAINER_CREATION_MAX_ATTEMPTS,
   DEFAULT_ANTHROPIC_MODEL,
+  DEFAULT_BASE_BRANCH,
   ISSUE_INTAKE_MAX_ATTEMPTS,
   ISSUE_NODES,
 } from "./constants.js";
@@ -38,6 +39,7 @@ export const prepareContainer = async () => {
   const githubRepo = process.env.GITHUB_REPO;
   const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
   const anthropicModel = process.env.ANTHROPIC_MODEL || DEFAULT_ANTHROPIC_MODEL;
+  const baseBranch = process.env.BASE_BRANCH || DEFAULT_BASE_BRANCH;
 
   if (!anthropicApiKey) {
     throw new Error(
@@ -51,6 +53,13 @@ export const prepareContainer = async () => {
 
   if (!githubRepo) {
     throw new Error("GITHUB_REPO is not set in the environment variables");
+  }
+
+  const PROTECTED_BRANCHES = ["main", "master"];
+  if (PROTECTED_BRANCHES.includes(baseBranch)) {
+    throw new Error(
+      `BASE_BRANCH="${baseBranch}" is prohibited — the pipeline must not operate on production branches (main/master). Set BASE_BRANCH to a development branch (e.g. "devel").`,
+    );
   }
 
   const docker = createDockerClient();
@@ -76,13 +85,29 @@ export const prepareContainer = async () => {
       containerId = container.id;
       logger.log("container", `Started: ${containerId}`);
 
+      const lsRemoteOutput = await execInContainer(docker, containerId, [
+        "git",
+        "ls-remote",
+        "--heads",
+        `https://x-access-token:${githubToken}@github.com/${githubRepo}.git`,
+        baseBranch,
+      ]);
+      if (!lsRemoteOutput.trim()) {
+        throw new Error(
+          `BASE_BRANCH="${baseBranch}" does not exist on remote "${githubRepo}". Verify the branch name and try again.`,
+        );
+      }
+
       await execInContainer(docker, containerId, [
         "git",
         "clone",
+        "--single-branch",
+        "-b",
+        baseBranch,
         `https://x-access-token:${githubToken}@github.com/${githubRepo}.git`,
         "/workspace/repo",
       ]);
-      logger.log("container", "Repository cloned");
+      logger.log("container", `Repository cloned (branch: ${baseBranch})`);
 
       const info = await container.inspect();
       if (!info.State.Running) {
@@ -113,7 +138,7 @@ export const prepareContainer = async () => {
         `echo '${escapedMcpConfig}' > /workspace/.mcp.json`,
       ]);
 
-      return { docker, containerId };
+      return { docker, containerId, baseBranch };
     } catch (error) {
       logger.error("container", `Preparation failed (attempt ${attempt}/${COTAINER_CREATION_MAX_ATTEMPTS})`, error);
       if (containerId) {
@@ -199,7 +224,7 @@ const routeAfterCodeReview = (state: TIssuePipelineGraphState) => {
  * the compiled runner along with cleanup handles.
  */
 export const setupIssuePipelineGraph = async () => {
-  const { docker, containerId } = await prepareContainer();
+  const { docker, containerId, baseBranch } = await prepareContainer();
 
   const graph = new StateGraph(IssuePipelineState)
     .addNode(ISSUE_NODES.FORMAT_INPUT, createFormatInputNode())
@@ -216,5 +241,10 @@ export const setupIssuePipelineGraph = async () => {
     .addConditionalEdges(ISSUE_NODES.CODE_REVIEW, routeAfterCodeReview)
     .addEdge(ISSUE_NODES.LOG_AND_NOTIFY, END);
 
-  return { runner: graph.compile(), docker, containerId };
+  const compiled = graph.compile();
+
+  const runCompiledGraph = (input: { inputText: string }) =>
+    compiled.invoke({ ...input, baseBranch });
+
+  return { runCompiledGraph, docker, containerId };
 };
