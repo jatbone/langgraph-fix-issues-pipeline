@@ -77,6 +77,20 @@ export const createCoderNode = (docker: Docker, containerId: string) => {
         );
       }
 
+      if (state.reviewResult && !state.reviewResult.approved) {
+        promptParts.push(
+          "",
+          "CODE REVIEW FEEDBACK — address these findings:",
+          state.reviewResult.summary,
+          "",
+          ...state.reviewResult.findings
+            .filter((f) => f.severity === "error" || f.severity === "warning")
+            .map((f) => `- [${f.severity}] ${f.file}:${f.line} (${f.category}): ${f.message}`),
+          "",
+          "Fix all error-severity findings and address warnings where possible.",
+        );
+      }
+
       const prompt = promptParts.join("\n");
 
       const result = await streamExecInContainer(docker, containerId, [
