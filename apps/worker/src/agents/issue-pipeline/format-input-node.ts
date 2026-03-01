@@ -13,6 +13,7 @@ const cleanedInputSchema = z.object({
 
 export const createFormatInputNode = () => {
   return async (state: TIssuePipelineGraphState) => {
+    logger.nodeStart("format_input");
     try {
       const model = new ChatAnthropic({
         model: "claude-haiku-4-5-20251001",
@@ -33,9 +34,8 @@ export const createFormatInputNode = () => {
         },
       ]);
 
-      logger.log("format_input", "Cleaned input", result);
-
       const parsed = cleanedInputSchema.parse(result);
+      logger.nodeEnd("format_input", "input cleaned");
 
       return {
         issue: {

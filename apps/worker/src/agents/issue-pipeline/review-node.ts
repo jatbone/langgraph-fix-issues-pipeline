@@ -35,6 +35,7 @@ const reviewResultJsonSchema = zodToJsonSchema(reviewResultSchema);
 
 export const createReviewNode = (docker: Docker, containerId: string) => {
   return async (state: TIssuePipelineGraphState) => {
+    logger.nodeStart("code_review");
     try {
       if (!state.issue) {
         throw new Error("review requires state.issue");
@@ -96,6 +97,8 @@ export const createReviewNode = (docker: Docker, containerId: string) => {
       ], (event) => logger.cliEvent("code_review", event));
 
       const parsed = reviewResultSchema.parse(result.structured_output);
+      const findings = parsed.findings.length;
+      logger.nodeEnd("code_review", `${parsed.approved ? "approved" : "rejected"}${findings > 0 ? `, ${findings} finding(s)` : ""}`);
 
       return {
         reviewResult: parsed,

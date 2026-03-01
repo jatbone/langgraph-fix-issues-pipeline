@@ -6,6 +6,13 @@
 import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/shared/server";
 import type { TStreamEvent } from "../../docker/index.js";
 
+const isDebug = process.env.IS_DEBUG === "true" || process.env.IS_DEBUG === "'true'";
+
+const MAX_TEXT_BLOCK_LENGTH_IN_DEBUG = 1000;
+const MAX_BASH_COMMAND_LENGTH_IN_DEBUG = 1000;
+const MAX_GREP_PATTERN_LENGTH_IN_DEBUG = 500;
+const MAX_AGENT_DESCRIPTION_LENGTH_IN_DEBUG = 500;
+
 const formatMessage = (node: string, message: string): string =>
   `[${node}] ${message}`;
 
@@ -30,20 +37,28 @@ const formatToolInput = (name: string, input?: Record<string, unknown>): string 
     case "Glob":
       return `Glob ${input.pattern ?? ""}`;
     case "Grep":
-      return `Grep ${truncate(String(input.pattern ?? ""), 60)}`;
+      return `Grep ${truncate(String(input.pattern ?? ""), MAX_GREP_PATTERN_LENGTH_IN_DEBUG)}`;
     case "Bash":
-      return `Bash ${truncate(String(input.command ?? ""), 80)}`;
+      return `Bash ${truncate(String(input.command ?? ""), MAX_BASH_COMMAND_LENGTH_IN_DEBUG)}`;
     case "Agent":
-      return `Agent: ${truncate(String(input.description ?? input.prompt ?? ""), 80)}`;
+      return `Agent: ${truncate(String(input.description ?? input.prompt ?? ""), MAX_AGENT_DESCRIPTION_LENGTH_IN_DEBUG)}`;
     default:
       return `Tool: ${name}`;
   }
 };
 
 export const logger = {
+  nodeStart(node: string): void {
+    console.log(formatMessage(node, "Starting..."));
+  },
+
+  nodeEnd(node: string, result: string): void {
+    console.log(formatMessage(node, `Done — ${result}`));
+  },
+
   log(node: string, message: string, data?: unknown): void {
     console.log(formatMessage(node, message));
-    if (data !== undefined) {
+    if (data !== undefined && isDebug) {
       console.log(formatData(data));
     }
   },
@@ -63,6 +78,10 @@ export const logger = {
   },
 
   cliEvent(node: string, event: TStreamEvent): void {
+    if (!isDebug) {
+      return;
+    }
+
     const prefix = `[${node}] ↳ `;
 
     if (event.type === "assistant") {
@@ -75,7 +94,7 @@ export const logger = {
         if (block.type === "tool_use") {
           console.log(`${prefix}${formatToolInput(block.name ?? "unknown", block.input)}`);
         } else if (block.type === "text" && block.text) {
-          const preview = block.text.length > 120 ? block.text.slice(0, 120) + "..." : block.text;
+          const preview = block.text.length > MAX_TEXT_BLOCK_LENGTH_IN_DEBUG ? block.text.slice(0, MAX_TEXT_BLOCK_LENGTH_IN_DEBUG) + "..." : block.text;
           console.log(`${prefix}${preview}`);
         }
       }

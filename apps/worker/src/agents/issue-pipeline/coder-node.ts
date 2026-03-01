@@ -22,6 +22,7 @@ const coderResultJsonSchema = zodToJsonSchema(coderResultSchema);
 
 export const createCoderNode = (docker: Docker, containerId: string) => {
   return async (state: TIssuePipelineGraphState) => {
+    logger.nodeStart("code_implementation");
     try {
       if (!state.issue) {
         throw new Error("coder requires state.issue");
@@ -98,6 +99,7 @@ export const createCoderNode = (docker: Docker, containerId: string) => {
       ], (event) => logger.cliEvent("code_implementation", event));
 
       const parsed = coderResultSchema.parse(result.structured_output);
+      logger.nodeEnd("code_implementation", `${parsed.filesChanged.length} file(s) changed`);
 
       return {
         coderResult: parsed,
