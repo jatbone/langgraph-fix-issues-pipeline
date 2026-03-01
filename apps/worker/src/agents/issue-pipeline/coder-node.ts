@@ -33,6 +33,17 @@ export const createCoderNode = (docker: Docker, containerId: string) => {
       const issue = state.issue;
       const plan = state.plan;
 
+      logger.log("code_implementation", "Installing dependencies…");
+      await execInContainer(docker, containerId, [
+        "sh",
+        "-c",
+        "cd /workspace/repo && " +
+          "if [ -f pnpm-lock.yaml ]; then corepack enable && pnpm install --frozen-lockfile; " +
+          "elif [ -f yarn.lock ]; then corepack enable && yarn install --frozen-lockfile; " +
+          "else npm ci; fi",
+      ]);
+      logger.log("code_implementation", "Dependencies installed");
+
       const escapedContract = CODER_CONTRACT.replace(/'/g, "'\\''");
       await execInContainer(docker, containerId, [
         "sh",

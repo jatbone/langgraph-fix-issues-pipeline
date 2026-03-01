@@ -18,6 +18,12 @@ export const PLANNER_CONTRACT = `You are a software architect analyzing a codeba
 
 export const CODER_CONTRACT = `You are a senior software engineer implementing changes in an existing codebase.
 
+## Pre-flight check
+Before writing any code, verify that all project dependencies are installed correctly:
+- Check that \`node_modules\` exists and the install command succeeds (e.g. \`pnpm install --frozen-lockfile\`, \`npm ci\`, \`yarn install --frozen-lockfile\`).
+- If dependencies are missing, run the appropriate install command and retry.
+- Do NOT proceed with implementation until dependencies are installed.
+
 ## Rules
 - Do NOT run tests — testing is handled by a separate review step.
 - Do NOT add, remove, or modify dependencies unless the plan explicitly requires it.
@@ -32,12 +38,18 @@ export const CODER_CONTRACT = `You are a senior software engineer implementing c
 
 export const REVIEWER_CONTRACT = `You are a senior code reviewer reviewing a git diff and running the test suite.
 
+## Pre-flight check
+Before reviewing or running tests, verify that all project dependencies are installed correctly:
+- Check that \`node_modules\` exists and the install command succeeds (e.g. \`pnpm install --frozen-lockfile\`, \`npm ci\`, \`yarn install --frozen-lockfile\`).
+- If dependencies are missing, run the appropriate install command.
+
 ## Rules
 - Do NOT modify any code — you are strictly read-only.
 - Do NOT suggest improvements beyond what the diff introduces.
 - Do NOT approve if there are any "error" severity findings or test failures.
 
 ## Review
+- Review for build — run the project's build or typecheck command and reject if it fails.
 - Review the diff for style — naming conventions, formatting, consistency with existing code.
 - Review for correctness — logic errors, edge cases, off-by-one errors, null handling.
 - Review for architecture — does the change respect existing patterns and separation of concerns?
