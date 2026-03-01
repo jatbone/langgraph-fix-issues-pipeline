@@ -19,6 +19,7 @@ import { createIssueIntakeNode } from "./issue-intake-node.js";
 import { createPlanNode } from "./plan-node.js";
 import { createCoderNode } from "./coder-node.js";
 import { createReviewNode } from "./review-node.js";
+import { createIntegratorNode } from "./integrator-node.js";
 import { createLogAndNotifyNode } from "./log-and-notify-node.js";
 import {
   REVIEW_MAX_ATTEMPTS,
@@ -211,7 +212,7 @@ const routeAfterCodeReview = (state: TIssuePipelineGraphState) => {
     return ISSUE_NODES.LOG_AND_NOTIFY;
   }
   if (state.reviewResult?.approved) {
-    return ISSUE_NODES.LOG_AND_NOTIFY;
+    return ISSUE_NODES.INTEGRATE;
   }
   if (state.reviewAttempts < REVIEW_MAX_ATTEMPTS) {
     return ISSUE_NODES.CODE_IMPLEMENTATION;
@@ -232,6 +233,7 @@ export const setupIssuePipelineGraph = async () => {
     .addNode(ISSUE_NODES.PLAN_GENERATION, createPlanNode(docker, containerId))
     .addNode(ISSUE_NODES.CODE_IMPLEMENTATION, createCoderNode(docker, containerId))
     .addNode(ISSUE_NODES.CODE_REVIEW, createReviewNode(docker, containerId))
+    .addNode(ISSUE_NODES.INTEGRATE, createIntegratorNode(docker, containerId))
     .addNode(ISSUE_NODES.LOG_AND_NOTIFY, createLogAndNotifyNode())
     .addEdge(START, ISSUE_NODES.FORMAT_INPUT)
     .addConditionalEdges(ISSUE_NODES.FORMAT_INPUT, routeAfterFormatInput)
@@ -239,6 +241,7 @@ export const setupIssuePipelineGraph = async () => {
     .addConditionalEdges(ISSUE_NODES.PLAN_GENERATION, routeAfterPlanGeneration)
     .addConditionalEdges(ISSUE_NODES.CODE_IMPLEMENTATION, routeAfterCodeImplementation)
     .addConditionalEdges(ISSUE_NODES.CODE_REVIEW, routeAfterCodeReview)
+    .addEdge(ISSUE_NODES.INTEGRATE, ISSUE_NODES.LOG_AND_NOTIFY)
     .addEdge(ISSUE_NODES.LOG_AND_NOTIFY, END);
 
   const compiled = graph.compile();

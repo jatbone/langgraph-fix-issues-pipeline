@@ -145,6 +145,11 @@ export const logger = {
       }
     }
 
+    if (state.integratorResult) {
+      console.log(`  Branch:      ${state.integratorResult.branchName}`);
+      console.log(`  PR:          ${state.integratorResult.prUrl}`);
+    }
+
     if (state.result.errors.length > 0) {
       console.log("");
       console.log("  Errors:");

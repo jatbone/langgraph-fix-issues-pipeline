@@ -52,3 +52,9 @@ export type TReviewResult = {
   testsPassed: boolean;
   testErrorSummary?: string;
 };
+
+export type TIntegratorResult = {
+  branchName: string;
+  prUrl: string;
+  prNumber: number;
+};
