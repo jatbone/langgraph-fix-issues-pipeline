@@ -80,11 +80,7 @@ export const createReviewNode = (docker: Docker, containerId: string) => {
       ]);
 
       const diffOutput = await execInContainer(docker, containerId, [
-        "git",
-        "-C",
-        "/workspace/repo",
-        "diff",
-        "HEAD~1",
+        "git", "-C", "/workspace/repo", "diff", "HEAD",
       ]);
 
       const promptParts = [
@@ -109,8 +105,9 @@ export const createReviewNode = (docker: Docker, containerId: string) => {
         "claude",
         "-p",
         prompt,
-        "--allowedTools",
-        "Bash,Read,mcp",
+        "--disallowedTools",
+        "Bash(git *)",
+        "mcp__github*",
         "--output-format",
         "stream-json",
         "--verbose",

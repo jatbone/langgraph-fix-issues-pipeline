@@ -113,8 +113,6 @@ export const createIntegratorNode = (docker: Docker, containerId: string) => {
         "claude",
         "-p",
         prompt,
-        "--allowedTools",
-        "Bash,mcp",
         "--output-format",
         "stream-json",
         "--verbose",
