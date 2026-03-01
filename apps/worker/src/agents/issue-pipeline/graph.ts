@@ -7,6 +7,7 @@ import { StateGraph, END, START } from "@langchain/langgraph";
 import { IssuePipelineState } from "@langgraph-fix-issues-pipeline/shared/server";
 import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/shared/server";
 import type Docker from "dockerode";
+import type { TDatabase } from "@langgraph-fix-issues-pipeline/shared/db";
 import {
   createDockerClient,
   buildImage,
@@ -224,7 +225,7 @@ const routeAfterCodeReview = (state: TIssuePipelineGraphState) => {
  * Prepares the container, builds the issue pipeline graph, and returns
  * the compiled runner along with cleanup handles.
  */
-export const setupIssuePipelineGraph = async () => {
+export const setupIssuePipelineGraph = async (db: TDatabase | null = null) => {
   const { docker, containerId, baseBranch } = await prepareContainer();
 
   const graph = new StateGraph(IssuePipelineState)
@@ -234,7 +235,7 @@ export const setupIssuePipelineGraph = async () => {
     .addNode(ISSUE_NODES.CODE_IMPLEMENTATION, createCoderNode(docker, containerId))
     .addNode(ISSUE_NODES.CODE_REVIEW, createReviewNode(docker, containerId))
     .addNode(ISSUE_NODES.INTEGRATE, createIntegratorNode(docker, containerId))
-    .addNode(ISSUE_NODES.LOG_AND_NOTIFY, createLogAndNotifyNode())
+    .addNode(ISSUE_NODES.LOG_AND_NOTIFY, createLogAndNotifyNode(db))
     .addEdge(START, ISSUE_NODES.FORMAT_INPUT)
     .addConditionalEdges(ISSUE_NODES.FORMAT_INPUT, routeAfterFormatInput)
     .addConditionalEdges(ISSUE_NODES.ISSUE_INTAKE, routeAfterIssueIntake)
@@ -246,7 +247,7 @@ export const setupIssuePipelineGraph = async () => {
 
   const compiled = graph.compile();
 
-  const runCompiledGraph = (input: { inputText: string }) =>
+  const runCompiledGraph = (input: { inputText: string; issueId?: number | null }) =>
     compiled.invoke({ ...input, baseBranch });
 
   return { runCompiledGraph, docker, containerId };

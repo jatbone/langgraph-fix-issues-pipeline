@@ -15,5 +15,9 @@ node_modules/
 # logs
 *.log
 
+# data
+data/
+*.db
+
 # misc
 .DS_Store

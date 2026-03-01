@@ -22,6 +22,11 @@ export const IssuePipelineState = Annotation.Root({
     reducer: (x, y) => y ?? x ?? "",
     default: () => "",
   }),
+  /** Database issue ID (null when running without DB) */
+  issueId: Annotation<number | null>({
+    reducer: (x, y) => y ?? x ?? null,
+    default: () => null,
+  }),
   /** Structured issue intake result */
   issue: Annotation<TIssueIntake | null>({
     reducer: (x, y) => y ?? x ?? null,
