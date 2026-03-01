@@ -64,6 +64,7 @@ export const createIssueIntakeNode = (docker: Docker, containerId: string) => {
       return {
         issue: { ...state.issue, ...parsed },
         issueIntakeAttempts: state.issueIntakeAttempts + 1,
+        result: { errors: [] },
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

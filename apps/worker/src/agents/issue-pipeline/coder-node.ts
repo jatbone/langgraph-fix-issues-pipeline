@@ -159,6 +159,7 @@ export const createCoderNode = (docker: Docker, containerId: string) => {
       return {
         coderResult: parsed,
         coderAttempts: state.coderAttempts + 1,
+        result: { errors: [] },
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
