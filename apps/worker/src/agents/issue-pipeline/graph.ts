@@ -17,9 +17,11 @@ import { createFormatInputNode } from "./format-input-node.js";
 import { createIssueIntakeNode } from "./issue-intake-node.js";
 import { createPlanNode } from "./plan-node.js";
 import { createCoderNode } from "./coder-node.js";
+import { createReviewNode } from "./review-node.js";
 import { createLogAndNotifyNode } from "./log-and-notify-node.js";
 import {
   CODER_MAX_ATTEMPTS,
+  REVIEW_MAX_ATTEMPTS,
   COTAINER_CREATION_MAX_ATTEMPTS,
   DEFAULT_ANTHROPIC_MODEL,
   ISSUE_INTAKE_MAX_ATTEMPTS,
@@ -160,6 +162,7 @@ export const setupIssuePipelineGraph = async () => {
     .addNode(ISSUE_NODES.ISSUE_INTAKE, createIssueIntakeNode(docker, containerId))
     .addNode(ISSUE_NODES.PLAN_GENERATION, createPlanNode(docker, containerId))
     .addNode(ISSUE_NODES.CODE_IMPLEMENTATION, createCoderNode(docker, containerId))
+    .addNode(ISSUE_NODES.CODE_REVIEW, createReviewNode(docker, containerId))
     .addNode(ISSUE_NODES.LOG_AND_NOTIFY, createLogAndNotifyNode())
     .addEdge(START, ISSUE_NODES.FORMAT_INPUT)
     .addConditionalEdges(ISSUE_NODES.FORMAT_INPUT, (state) => {
@@ -189,9 +192,21 @@ export const setupIssuePipelineGraph = async () => {
         return ISSUE_NODES.LOG_AND_NOTIFY;
       }
       if (state.coderResult?.testsPassed) {
-        return ISSUE_NODES.LOG_AND_NOTIFY;
+        return ISSUE_NODES.CODE_REVIEW;
       }
       if (state.coderAttempts < CODER_MAX_ATTEMPTS) {
+        return ISSUE_NODES.CODE_IMPLEMENTATION;
+      }
+      return ISSUE_NODES.LOG_AND_NOTIFY;
+    })
+    .addConditionalEdges(ISSUE_NODES.CODE_REVIEW, (state) => {
+      if (state.result.errors.length > 0) {
+        return ISSUE_NODES.LOG_AND_NOTIFY;
+      }
+      if (state.reviewResult?.approved) {
+        return ISSUE_NODES.LOG_AND_NOTIFY;
+      }
+      if (state.reviewAttempts < REVIEW_MAX_ATTEMPTS) {
         return ISSUE_NODES.CODE_IMPLEMENTATION;
       }
       return ISSUE_NODES.LOG_AND_NOTIFY;

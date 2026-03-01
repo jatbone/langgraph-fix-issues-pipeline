@@ -115,6 +115,19 @@ export const logger = {
       }
     }
 
+    if (state.reviewResult) {
+      const r = state.reviewResult;
+      console.log(`  Review:      ${r.approved ? "approved" : "REJECTED"}`);
+      console.log(`  Review summary: ${r.summary}`);
+      const errorCount = r.findings.filter((f) => f.severity === "error").length;
+      const warnCount = r.findings.filter((f) => f.severity === "warning").length;
+      const infoCount = r.findings.filter((f) => f.severity === "info").length;
+      console.log(`  Findings:    ${errorCount} error, ${warnCount} warning, ${infoCount} info`);
+      if (!r.testsPassed && r.testErrorSummary) {
+        console.log(`  Review tests: FAILED — ${r.testErrorSummary}`);
+      }
+    }
+
     if (state.result.errors.length > 0) {
       console.log("");
       console.log("  Errors:");

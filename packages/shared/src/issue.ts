@@ -38,3 +38,19 @@ export type TCoderResult = {
   testsPassed: boolean;
   testErrorSummary?: string;
 };
+
+export type TReviewFinding = {
+  file: string;
+  line: number;
+  severity: "info" | "warning" | "error";
+  category: "style" | "correctness" | "architecture" | "security";
+  message: string;
+};
+
+export type TReviewResult = {
+  approved: boolean;
+  summary: string;
+  findings: TReviewFinding[];
+  testsPassed: boolean;
+  testErrorSummary?: string;
+};
