@@ -15,7 +15,6 @@ const main = async () => {
   const githubToken = process.env.GITHUB_TOKEN;
   const githubRepo = process.env.GITHUB_REPO;
 
-
   if (!anthropicApiKey) {
     throw new Error("ANTHROPIC_API_KEY is not set in the environment variables");
   }
@@ -23,8 +22,6 @@ const main = async () => {
   if (!githubRepo) {
     throw new Error("GITHUB_REPO is not set in the environment variables");
   }
-
-
 
   if (!githubToken) {
     throw new Error("GITHUB_TOKEN is not set in the environment variables");
@@ -34,14 +31,14 @@ const main = async () => {
   let containerId: string | undefined;
   try {
     const {
-      runner,
+      runCompiledGraph,
       docker: newDockerInstance,
       containerId: newContainerId,
     } = await setupIssuePipelineGraph();
     docker = newDockerInstance;
     containerId = newContainerId;
 
-    await runner.invoke({
+    await runCompiledGraph({
       inputText: "Change the background color of the page to red.",
     });
 

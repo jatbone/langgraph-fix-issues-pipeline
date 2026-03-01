@@ -33,6 +33,20 @@ export const createCoderNode = (docker: Docker, containerId: string) => {
       const issue = state.issue;
       const plan = state.plan;
 
+      if (!state.baseBranch) {
+        throw new Error("coder requires state.baseBranch");
+      }
+
+      const currentBranch = (await execInContainer(docker, containerId, [
+        "git", "-C", "/workspace/repo", "branch", "--show-current",
+      ])).trim();
+      if (currentBranch !== state.baseBranch) {
+        throw new Error(
+          `Branch mismatch: expected "${state.baseBranch}" but currently on "${currentBranch}". Aborting to prevent working on the wrong branch.`,
+        );
+      }
+      logger.log("code_implementation", `Branch verified: ${currentBranch}`);
+
       logger.log("code_implementation", "Installing dependencies…");
       await execInContainer(docker, containerId, [
         "sh",
