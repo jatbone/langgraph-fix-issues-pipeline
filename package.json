@@ -7,6 +7,8 @@
     "worker:dev": "nx run worker:dev",
     "worker:build": "nx run worker:build",
     "worker:start": "nx run worker:start",
+    "db:migrate": "nx run db-helper:migrate",
+    "db:insert": "nx run db-helper:insert",
     "build": "nx run-many --target=build --all --verbose"
   },
   "devDependencies": {

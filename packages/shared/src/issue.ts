@@ -58,3 +58,18 @@ export type TIntegratorResult = {
   prUrl: string;
   prNumber: number;
 };
+
+export type TIssueStatus = "open" | "claimed" | "success" | "failed";
+
+export type TIssueRow = {
+  id: number;
+  title: string;
+  body: string;
+  status: TIssueStatus;
+  claimed_at: string | null;
+  finished_at: string | null;
+  result_summary: string | null;
+  pr_url: string | null;
+  created_at: string;
+  updated_at: string;
+};
