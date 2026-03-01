@@ -19,7 +19,7 @@
     "zod-to-json-schema": "^3.25.1"
   },
   "devDependencies": {
-    "@langgraph-fix-issues-pipeline/shared": "workspace:*",
+    "@langgraph-fix-issues-pipeline/backend": "workspace:*",
     "@types/dockerode": "^3.3.34",
     "@types/node": "^20.11.17",
     "tsx": "^4.7.1",

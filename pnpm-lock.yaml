@@ -14,9 +14,9 @@ importers:
 
   apps/db-helper:
     dependencies:
-      '@langgraph-fix-issues-pipeline/shared':
+      '@langgraph-fix-issues-pipeline/backend':
         specifier: workspace:*
-        version: link:../../packages/shared
+        version: link:../../packages/backend
       dotenv:
         specifier: ^16.4.7
         version: 16.6.1
@@ -24,9 +24,6 @@ importers:
       '@types/node':
         specifier: ^20.11.17
         version: 20.19.34
-      tsx:
-        specifier: ^4.7.1
-        version: 4.21.0
       typescript:
         specifier: ^5.3.3
         version: 5.9.3
@@ -55,9 +52,9 @@ importers:
         specifier: ^3.25.1
         version: 3.25.1(zod@3.25.76)
     devDependencies:
-      '@langgraph-fix-issues-pipeline/shared':
+      '@langgraph-fix-issues-pipeline/backend':
         specifier: workspace:*
-        version: link:../../packages/shared
+        version: link:../../packages/backend
       '@types/dockerode':
         specifier: ^3.3.34
         version: 3.3.47
@@ -71,7 +68,7 @@ importers:
         specifier: ^5.3.3
         version: 5.9.3
 
-  packages/shared:
+  packages/backend:
     dependencies:
       '@langchain/core':
         specifier: ^1.1.0

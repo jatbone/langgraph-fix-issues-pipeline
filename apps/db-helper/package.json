@@ -9,7 +9,7 @@
     "insert": "npm run build && node dist/insert.js"
   },
   "dependencies": {
-    "@langgraph-fix-issues-pipeline/shared": "workspace:*",
+    "@langgraph-fix-issues-pipeline/backend": "workspace:*",
     "dotenv": "^16.4.7"
   },
   "devDependencies": {

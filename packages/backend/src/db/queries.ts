@@ -3,7 +3,7 @@
  */
 
 import type Database from "better-sqlite3";
-import type { TIssueRow } from "../issue.js";
+import type { TIssueRow } from "../types.js";
 
 /**
  * Atomically claims the next open issue (oldest first).

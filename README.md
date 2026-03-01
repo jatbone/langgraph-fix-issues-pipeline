@@ -15,7 +15,7 @@ pnpm worker:dev       # Start the polling worker
 ## Architecture
 
 - **apps/worker** — Node.js worker app that polls a SQLite database for issues and runs each through a LangGraph pipeline
-- **packages/shared** — Shared TypeScript types and LangGraph state definitions
+- **packages/backend** — Shared TypeScript types and LangGraph state definitions
 
 ### Polling Loop
 

@@ -3,7 +3,7 @@
  * Prefixed, leveled output without external dependencies.
  */
 
-import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/shared/server";
+import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/backend";
 import type { TStreamEvent } from "../../docker/index.js";
 
 const isDebug = process.env.IS_DEBUG === "true" || process.env.IS_DEBUG === "'true'";

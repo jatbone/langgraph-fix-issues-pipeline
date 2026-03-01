@@ -3,8 +3,7 @@
  * and updates the issue status in the database when available.
  */
 
-import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/shared/server";
-import type { TDatabase } from "@langgraph-fix-issues-pipeline/shared/db";
+import type { TIssuePipelineGraphState, TDatabase } from "@langgraph-fix-issues-pipeline/backend";
 import { markSuccess, markFailed } from "../../db/index.js";
 import { logger } from "./logger.js";
 
