@@ -5,6 +5,7 @@
 
 import { StateGraph, END, START } from "@langchain/langgraph";
 import { IssuePipelineState } from "@langgraph-fix-issues-pipeline/shared/server";
+import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/shared/server";
 import type Docker from "dockerode";
 import {
   createDockerClient,
@@ -149,6 +150,50 @@ export const cleanupContainer = async (docker: Docker, containerId: string) => {
   logger.log("container", `Cleaned up: ${containerId}`);
 };
 
+const routeAfterFormatInput = (state: TIssuePipelineGraphState) => {
+  if (state.result.errors.length > 0) {
+    return ISSUE_NODES.LOG_AND_NOTIFY;
+  }
+  return ISSUE_NODES.ISSUE_INTAKE;
+};
+
+const routeAfterIssueIntake = (state: TIssuePipelineGraphState) => {
+  if (state.issue?.title !== undefined) {
+    return ISSUE_NODES.PLAN_GENERATION;
+  }
+  if (state.issueIntakeAttempts < ISSUE_INTAKE_MAX_ATTEMPTS) {
+    return ISSUE_NODES.ISSUE_INTAKE;
+  }
+  return ISSUE_NODES.LOG_AND_NOTIFY;
+};
+
+const routeAfterPlanGeneration = (state: TIssuePipelineGraphState) => {
+  if (state.result.errors.length > 0) {
+    return ISSUE_NODES.LOG_AND_NOTIFY;
+  }
+  return ISSUE_NODES.CODE_IMPLEMENTATION;
+};
+
+const routeAfterCodeImplementation = (state: TIssuePipelineGraphState) => {
+  if (state.result.errors.length > 0) {
+    return ISSUE_NODES.LOG_AND_NOTIFY;
+  }
+  return ISSUE_NODES.CODE_REVIEW;
+};
+
+const routeAfterCodeReview = (state: TIssuePipelineGraphState) => {
+  if (state.result.errors.length > 0) {
+    return ISSUE_NODES.LOG_AND_NOTIFY;
+  }
+  if (state.reviewResult?.approved) {
+    return ISSUE_NODES.LOG_AND_NOTIFY;
+  }
+  if (state.reviewAttempts < REVIEW_MAX_ATTEMPTS) {
+    return ISSUE_NODES.CODE_IMPLEMENTATION;
+  }
+  return ISSUE_NODES.LOG_AND_NOTIFY;
+};
+
 /**
  * Prepares the container, builds the issue pipeline graph, and returns
  * the compiled runner along with cleanup handles.
@@ -164,46 +209,11 @@ export const setupIssuePipelineGraph = async () => {
     .addNode(ISSUE_NODES.CODE_REVIEW, createReviewNode(docker, containerId))
     .addNode(ISSUE_NODES.LOG_AND_NOTIFY, createLogAndNotifyNode())
     .addEdge(START, ISSUE_NODES.FORMAT_INPUT)
-    .addConditionalEdges(ISSUE_NODES.FORMAT_INPUT, (state) => {
-      if (state.result.errors.length > 0) {
-        return ISSUE_NODES.LOG_AND_NOTIFY;
-      }
-      return ISSUE_NODES.ISSUE_INTAKE;
-    })
-    .addConditionalEdges(ISSUE_NODES.ISSUE_INTAKE, (state) => {
-      const hasIntakeResult = state.issue?.title !== undefined;
-      if (hasIntakeResult) {
-        return ISSUE_NODES.PLAN_GENERATION;
-      }
-      if (state.issueIntakeAttempts < ISSUE_INTAKE_MAX_ATTEMPTS) {
-        return ISSUE_NODES.ISSUE_INTAKE;
-      }
-      return ISSUE_NODES.LOG_AND_NOTIFY;
-    })
-    .addConditionalEdges(ISSUE_NODES.PLAN_GENERATION, (state) => {
-      if (state.result.errors.length > 0) {
-        return ISSUE_NODES.LOG_AND_NOTIFY;
-      }
-      return ISSUE_NODES.CODE_IMPLEMENTATION;
-    })
-    .addConditionalEdges(ISSUE_NODES.CODE_IMPLEMENTATION, (state) => {
-      if (state.result.errors.length > 0) {
-        return ISSUE_NODES.LOG_AND_NOTIFY;
-      }
-      return ISSUE_NODES.CODE_REVIEW;
-    })
-    .addConditionalEdges(ISSUE_NODES.CODE_REVIEW, (state) => {
-      if (state.result.errors.length > 0) {
-        return ISSUE_NODES.LOG_AND_NOTIFY;
-      }
-      if (state.reviewResult?.approved) {
-        return ISSUE_NODES.LOG_AND_NOTIFY;
-      }
-      if (state.reviewAttempts < REVIEW_MAX_ATTEMPTS) {
-        return ISSUE_NODES.CODE_IMPLEMENTATION;
-      }
-      return ISSUE_NODES.LOG_AND_NOTIFY;
-    })
+    .addConditionalEdges(ISSUE_NODES.FORMAT_INPUT, routeAfterFormatInput)
+    .addConditionalEdges(ISSUE_NODES.ISSUE_INTAKE, routeAfterIssueIntake)
+    .addConditionalEdges(ISSUE_NODES.PLAN_GENERATION, routeAfterPlanGeneration)
+    .addConditionalEdges(ISSUE_NODES.CODE_IMPLEMENTATION, routeAfterCodeImplementation)
+    .addConditionalEdges(ISSUE_NODES.CODE_REVIEW, routeAfterCodeReview)
     .addEdge(ISSUE_NODES.LOG_AND_NOTIFY, END);
 
   return { runner: graph.compile(), docker, containerId };
