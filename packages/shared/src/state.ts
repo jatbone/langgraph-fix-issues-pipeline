@@ -3,8 +3,8 @@
  */
 
 import { Annotation } from "@langchain/langgraph";
-import type { TIssueIntake, TIssuePlan, TCoderResult, TReviewResult, TIntegratorResult, TPipelineResult } from "./issue.js";
-export type { TIssueIntake, TIssuePlan, TCoderResult, TReviewResult, TIntegratorResult, TPipelineResult } from "./issue.js";
+import type { TIssueIntake, TIssuePlan, TCoderResult, TReviewResult, TIntegratorResult, TPipelineResult } from "./types.js";
+export type { TIssueIntake, TIssuePlan, TCoderResult, TReviewResult, TIntegratorResult, TPipelineResult } from "./types.js";
 
 /**
  * Issue Pipeline graph state.
