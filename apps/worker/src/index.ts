@@ -57,6 +57,7 @@ const main = async () => {
 
     let docker: Dockerode | undefined;
     let containerId: string | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
     try {
       const {
@@ -73,7 +74,7 @@ const main = async () => {
       });
 
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(
+        timeoutId = setTimeout(
           () => reject(new Error("Pipeline timed out")),
           PIPELINE_TIMEOUT_MS,
         );
@@ -87,6 +88,7 @@ const main = async () => {
       console.error(`Pipeline failed for issue #${issue.id}: ${message}`);
       markFailed(db, issue.id, message);
     } finally {
+      clearTimeout(timeoutId);
       if (docker && containerId) {
         await cleanupContainer(docker, containerId);
       }
