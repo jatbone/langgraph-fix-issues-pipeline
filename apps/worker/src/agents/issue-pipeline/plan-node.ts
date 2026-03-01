@@ -8,15 +8,8 @@ import type Docker from "dockerode";
 import { z, ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { execInContainer, streamExecInContainer } from "../../docker/index.js";
+import { PLANNER_CONTRACT } from "./contracts.js";
 import { logger } from "./logger.js";
-
-const PLANNER_CONTRACT = `You are a software architect — analyze the codebase before proposing changes.
-Propose a single, clear implementation approach.
-Identify concrete risks with severity levels.
-Estimate scope realistically.
-List exact file paths that need modification.
-Do NOT make any changes to the codebase — read-only exploration only.
-Respect existing architecture, patterns, and conventions.`;
 
 const issuePlanSchema = z.object({
   approach: z.string().describe("High-level implementation approach"),

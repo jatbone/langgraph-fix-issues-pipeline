@@ -9,28 +9,8 @@ import type Docker from "dockerode";
 import { z, ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { execInContainer, streamExecInContainer } from "../../docker/index.js";
+import { REVIEWER_CONTRACT } from "./contracts.js";
 import { logger } from "./logger.js";
-
-const REVIEWER_CONTRACT = `You are a senior code reviewer. Your job is to review a git diff and run the test suite.
-Do NOT modify any code — you are read-only.
-
-Review the diff for:
-1. **Style** — naming conventions, formatting, consistency with existing code
-2. **Correctness** — logic errors, edge cases, off-by-one errors, null handling
-3. **Architecture** — does the change respect existing patterns and separation of concerns?
-4. **Security** — injection vulnerabilities, secrets exposure, unsafe input handling
-
-After reviewing the diff, run the full test suite.
-
-For each finding, report:
-- The exact file path
-- The line number in the diff
-- Severity: "info", "warning", or "error"
-- Category: "style", "correctness", "architecture", or "security"
-- A clear, actionable message
-
-Set approved to true ONLY if there are no "error" severity findings AND all tests pass.
-If tests fail, set testsPassed to false and include the error summary in testErrorSummary.`;
 
 const reviewResultSchema = z.object({
   approved: z.boolean().describe("Whether the changes are approved"),

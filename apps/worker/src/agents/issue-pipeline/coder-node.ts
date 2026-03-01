@@ -8,12 +8,8 @@ import type Docker from "dockerode";
 import { z, ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { execInContainer, streamExecInContainer } from "../../docker/index.js";
+import { CODER_CONTRACT } from "./contracts.js";
 import { logger } from "./logger.js";
-
-const CODER_CONTRACT = `Follow existing code conventions, patterns, and architecture.
-Do not introduce unnecessary dependencies.
-Do NOT run tests — testing is handled by a separate review step.
-Commit changes with a clear, descriptive commit message.`;
 
 const coderResultSchema = z.object({
   summary: z.string().describe("Summary of changes made"),
