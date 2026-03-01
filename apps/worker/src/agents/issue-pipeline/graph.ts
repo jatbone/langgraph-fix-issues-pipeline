@@ -22,13 +22,18 @@ import { createReviewNode } from "./review-node.js";
 import { createIntegratorNode } from "./integrator-node.js";
 import { createLogAndNotifyNode } from "./log-and-notify-node.js";
 import {
-  REVIEW_MAX_ATTEMPTS,
   COTAINER_CREATION_MAX_ATTEMPTS,
   DEFAULT_ANTHROPIC_MODEL,
   DEFAULT_BASE_BRANCH,
-  ISSUE_INTAKE_MAX_ATTEMPTS,
   ISSUE_NODES,
 } from "./constants.js";
+import {
+  routeAfterFormatInput,
+  routeAfterIssueIntake,
+  routeAfterPlanGeneration,
+  routeAfterCodeImplementation,
+  routeAfterCodeReview,
+} from "./routing.js";
 import { logger } from "./logger.js";
 
 /**
@@ -174,50 +179,6 @@ export const cleanupContainer = async (docker: Docker, containerId: string) => {
     logger.log("container", `Already removed: ${containerId}`);
   }
   logger.log("container", `Cleaned up: ${containerId}`);
-};
-
-const routeAfterFormatInput = (state: TIssuePipelineGraphState) => {
-  if (state.result.errors.length > 0) {
-    return ISSUE_NODES.LOG_AND_NOTIFY;
-  }
-  return ISSUE_NODES.ISSUE_INTAKE;
-};
-
-const routeAfterIssueIntake = (state: TIssuePipelineGraphState) => {
-  if (state.issue?.title !== undefined) {
-    return ISSUE_NODES.PLAN_GENERATION;
-  }
-  if (state.issueIntakeAttempts < ISSUE_INTAKE_MAX_ATTEMPTS) {
-    return ISSUE_NODES.ISSUE_INTAKE;
-  }
-  return ISSUE_NODES.LOG_AND_NOTIFY;
-};
-
-const routeAfterPlanGeneration = (state: TIssuePipelineGraphState) => {
-  if (state.result.errors.length > 0) {
-    return ISSUE_NODES.LOG_AND_NOTIFY;
-  }
-  return ISSUE_NODES.CODE_IMPLEMENTATION;
-};
-
-const routeAfterCodeImplementation = (state: TIssuePipelineGraphState) => {
-  if (state.result.errors.length > 0) {
-    return ISSUE_NODES.LOG_AND_NOTIFY;
-  }
-  return ISSUE_NODES.CODE_REVIEW;
-};
-
-const routeAfterCodeReview = (state: TIssuePipelineGraphState) => {
-  if (state.result.errors.length > 0) {
-    return ISSUE_NODES.LOG_AND_NOTIFY;
-  }
-  if (state.reviewResult?.approved) {
-    return ISSUE_NODES.INTEGRATE;
-  }
-  if (state.reviewAttempts < REVIEW_MAX_ATTEMPTS) {
-    return ISSUE_NODES.CODE_IMPLEMENTATION;
-  }
-  return ISSUE_NODES.LOG_AND_NOTIFY;
 };
 
 /**
