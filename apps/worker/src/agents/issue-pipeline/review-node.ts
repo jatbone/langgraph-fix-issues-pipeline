@@ -47,6 +47,17 @@ export const createReviewNode = (docker: Docker, containerId: string) => {
       const issue = state.issue;
       const plan = state.plan;
 
+      logger.log("code_review", "Installing dependencies…");
+      await execInContainer(docker, containerId, [
+        "sh",
+        "-c",
+        "cd /workspace/repo && " +
+          "if [ -f pnpm-lock.yaml ]; then corepack enable && pnpm install --frozen-lockfile; " +
+          "elif [ -f yarn.lock ]; then corepack enable && yarn install --frozen-lockfile; " +
+          "else npm ci; fi",
+      ]);
+      logger.log("code_review", "Dependencies installed");
+
       const escapedContract = REVIEWER_CONTRACT.replace(/'/g, "'\\''");
       await execInContainer(docker, containerId, [
         "sh",
