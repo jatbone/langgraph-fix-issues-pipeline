@@ -27,22 +27,21 @@ const issueIntakeJsonSchema = zodToJsonSchema(issueIntakeSchema);
 
 export const createIssueIntakeNode = (docker: Docker, containerId: string) => {
   return async (state: TIssuePipelineGraphState) => {
-    if (!state.issue) {
-      throw new Error("issue_intake requires state.issue");
-    }
-
     logger.nodeStart("issue_intake");
-    const cleanedText = state.issue.cleaned;
-
-    const prompt = [
-      "Here is an issue to analyze in the context of this codebase:",
-      "",
-      cleanedText,
-      "",
-      "Parse this issue, extract requirements, identify ambiguities, and classify complexity.",
-    ].join("\n");
-
     try {
+      if (!state.issue) {
+        throw new Error("issue_intake requires state.issue");
+      }
+      const cleanedText = state.issue.cleaned;
+
+      const prompt = [
+        "Here is an issue to analyze in the context of this codebase:",
+        "",
+        cleanedText,
+        "",
+        "Parse this issue, extract requirements, identify ambiguities, and classify complexity.",
+      ].join("\n");
+
       const result = await streamExecInContainer(docker, containerId, [
         "claude",
         "-p",
