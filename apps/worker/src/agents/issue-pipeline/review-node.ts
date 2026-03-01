@@ -108,6 +108,7 @@ export const createReviewNode = (docker: Docker, containerId: string) => {
       ], (event) => logger.cliEvent("code_review", event));
 
       const parsed = reviewResultSchema.parse(result.structured_output);
+      logger.log("code_review", "Result", parsed);
       const findings = parsed.findings.length;
       logger.nodeEnd("code_review", `${parsed.approved ? "approved" : "rejected"}${findings > 0 ? `, ${findings} finding(s)` : ""}`);
 

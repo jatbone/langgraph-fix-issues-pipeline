@@ -77,6 +77,7 @@ export const createPlanNode = (docker: Docker, containerId: string) => {
       ], (event) => logger.cliEvent("plan_generation", event));
 
       const parsed = issuePlanSchema.parse(result.structured_output);
+      logger.log("plan_generation", "Result", parsed);
       logger.nodeEnd("plan_generation", `${parsed.estimatedScope} scope, ${parsed.steps.length} steps`);
 
       return { plan: parsed };

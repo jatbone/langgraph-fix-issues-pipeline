@@ -58,6 +58,7 @@ export const createIssueIntakeNode = (docker: Docker, containerId: string) => {
       ], (event) => logger.cliEvent("issue_intake", event));
 
       const parsed = issueIntakeSchema.parse(result.structured_output);
+      logger.log("issue_intake", "Result", parsed);
       logger.nodeEnd("issue_intake", `"${parsed.title}" (${parsed.complexity})`);
 
       return {

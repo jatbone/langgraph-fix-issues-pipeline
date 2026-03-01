@@ -35,6 +35,7 @@ export const createFormatInputNode = () => {
       ]);
 
       const parsed = cleanedInputSchema.parse(result);
+      logger.log("format_input", "Result", parsed);
 
       logger.nodeEnd("format_input", `input cleaned: "${parsed.issueText}"`);
 

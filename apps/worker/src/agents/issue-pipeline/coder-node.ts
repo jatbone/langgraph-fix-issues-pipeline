@@ -110,6 +110,7 @@ export const createCoderNode = (docker: Docker, containerId: string) => {
       ], (event) => logger.cliEvent("code_implementation", event));
 
       const parsed = coderResultSchema.parse(result.structured_output);
+      logger.log("code_implementation", "Result", parsed);
       logger.nodeEnd("code_implementation", `${parsed.filesChanged.length} file(s) changed`);
 
       return {
