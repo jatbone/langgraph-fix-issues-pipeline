@@ -59,6 +59,13 @@ export const createIntegratorNode = (docker: Docker, containerId: string) => {
       }
       logger.log("integrate", `Branch verified: ${state.baseBranch}`);
 
+      await execInContainer(docker, containerId, [
+        "git", "-C", "/workspace/repo", "config", "user.email", "agent@company.com",
+      ]);
+      await execInContainer(docker, containerId, [
+        "git", "-C", "/workspace/repo", "config", "user.name", "Fix Issue Agent",
+      ]);
+
       const slug = slugify(state.issue.title);
       const branchName = `fix/${slug}`;
       const commitMessage = `fix: ${state.issue.title}`;
