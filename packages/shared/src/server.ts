@@ -5,8 +5,8 @@
  */
 
 import { Annotation } from "@langchain/langgraph";
-import type { TIssueIntake, TIssuePlan, TCoderResult, TReviewResult, TPipelineResult } from "./issue.js";
-export type { TIssueIntake, TIssuePlan, TCoderResult, TReviewResult, TPipelineResult } from "./issue.js";
+import type { TIssueIntake, TIssuePlan, TCoderResult, TReviewResult, TIntegratorResult, TPipelineResult } from "./issue.js";
+export type { TIssueIntake, TIssuePlan, TCoderResult, TReviewResult, TIntegratorResult, TPipelineResult } from "./issue.js";
 
 /**
  * Issue Pipeline graph state.
@@ -61,6 +61,11 @@ export const IssuePipelineState = Annotation.Root({
   reviewAttempts: Annotation<number>({
     reducer: (x, y) => y ?? x ?? 0,
     default: () => 0,
+  }),
+  /** Result from the integrator node */
+  integratorResult: Annotation<TIntegratorResult | null>({
+    reducer: (x, y) => y ?? x ?? null,
+    default: () => null,
   }),
 });
 

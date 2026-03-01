@@ -27,5 +27,6 @@ export const ISSUE_NODES = {
   PLAN_GENERATION: "plan_generation",
   CODE_IMPLEMENTATION: "code_implementation",
   CODE_REVIEW: "code_review",
+  INTEGRATE: "integrate",
   LOG_AND_NOTIFY: "log_and_notify",
 } as const;
