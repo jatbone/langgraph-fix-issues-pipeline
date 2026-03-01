@@ -3,7 +3,7 @@
  * with codebase context. On ZodError, stores error in state for conditional retry.
  */
 
-import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/shared/server";
+import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/backend";
 import type Docker from "dockerode";
 import { z, ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";

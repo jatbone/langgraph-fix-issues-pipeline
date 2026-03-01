@@ -4,10 +4,9 @@
  */
 
 import { StateGraph, END, START } from "@langchain/langgraph";
-import { IssuePipelineState } from "@langgraph-fix-issues-pipeline/shared/server";
-import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/shared/server";
+import { IssuePipelineState } from "@langgraph-fix-issues-pipeline/backend";
+import type { TIssuePipelineGraphState, TDatabase } from "@langgraph-fix-issues-pipeline/backend";
 import type Docker from "dockerode";
-import type { TDatabase } from "@langgraph-fix-issues-pipeline/shared/db";
 import {
   createDockerClient,
   buildImage,

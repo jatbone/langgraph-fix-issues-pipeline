@@ -1,6 +1,6 @@
 # db-helper
 
-CLI scripts for managing the SQLite issues database. Uses the DB layer from `@langgraph-fix-issues-pipeline/shared/db`.
+CLI scripts for managing the SQLite issues database. Uses the DB layer from `@langgraph-fix-issues-pipeline/backend`.
 
 ## Commands
 

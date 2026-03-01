@@ -6,9 +6,9 @@ export {
   markSuccess,
   markFailed,
   insertIssue,
-} from "@langgraph-fix-issues-pipeline/shared/db";
+} from "@langgraph-fix-issues-pipeline/backend";
 export type {
   TIssueStatus,
   TIssueRow,
   TDatabase,
-} from "@langgraph-fix-issues-pipeline/shared/db";
+} from "@langgraph-fix-issues-pipeline/backend";
