@@ -1,6 +1,6 @@
 /**
  * Coder node — runs Claude CLI in a Docker container to implement changes
- * based on the plan. Retries up to CODER_MAX_ATTEMPTS on test failures.
+ * based on the plan. Does not run tests — testing is handled by the review node.
  */
 
 import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/shared/server";
@@ -12,9 +12,7 @@ import { logger } from "./logger.js";
 
 const CODER_CONTRACT = `Follow existing code conventions, patterns, and architecture.
 Do not introduce unnecessary dependencies.
-IMPORTANT: Do NOT auto-fix test failures — if tests fail, you MUST stop immediately and report the failures in structured output. Never attempt to fix failing tests on your own.
-Run all tests after implementing changes.
-Return structured output with testsPassed: false and testErrorSummary if tests fail.
+Do NOT run tests — testing is handled by a separate review step.
 Commit changes with a clear, descriptive commit message.`;
 
 const coderResultSchema = z.object({
@@ -22,11 +20,6 @@ const coderResultSchema = z.object({
   filesChanged: z
     .array(z.string())
     .describe("List of files that were modified"),
-  testsPassed: z.boolean().describe("Whether all tests passed"),
-  testErrorSummary: z
-    .string()
-    .optional()
-    .describe("Summary of test errors if tests failed"),
 });
 
 const coderResultJsonSchema = zodToJsonSchema(coderResultSchema);
@@ -64,18 +57,8 @@ export const createCoderNode = (docker: Docker, containerId: string) => {
         "Files to modify:",
         ...plan.filesToModify.map((f) => `- ${f}`),
         "",
-        "Implement all changes, run tests, and return the result.",
+        "Implement all changes and return the result.",
       ];
-
-      if (state.coderAttempts > 0 && state.coderResult?.testErrorSummary) {
-        promptParts.push(
-          "",
-          "PREVIOUS ATTEMPT FAILED — test errors from last run:",
-          state.coderResult.testErrorSummary,
-          "",
-          "Fix these test failures and try again.",
-        );
-      }
 
       if (state.reviewResult && !state.reviewResult.approved) {
         promptParts.push(
@@ -89,6 +72,15 @@ export const createCoderNode = (docker: Docker, containerId: string) => {
           "",
           "Fix all error-severity findings and address warnings where possible.",
         );
+        if (!state.reviewResult.testsPassed && state.reviewResult.testErrorSummary) {
+          promptParts.push(
+            "",
+            "TEST FAILURES from review:",
+            state.reviewResult.testErrorSummary,
+            "",
+            "Fix these test failures as well.",
+          );
+        }
       }
 
       const prompt = promptParts.join("\n");

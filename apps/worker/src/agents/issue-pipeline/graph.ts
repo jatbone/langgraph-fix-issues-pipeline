@@ -20,7 +20,6 @@ import { createCoderNode } from "./coder-node.js";
 import { createReviewNode } from "./review-node.js";
 import { createLogAndNotifyNode } from "./log-and-notify-node.js";
 import {
-  CODER_MAX_ATTEMPTS,
   REVIEW_MAX_ATTEMPTS,
   COTAINER_CREATION_MAX_ATTEMPTS,
   DEFAULT_ANTHROPIC_MODEL,
@@ -191,13 +190,7 @@ export const setupIssuePipelineGraph = async () => {
       if (state.result.errors.length > 0) {
         return ISSUE_NODES.LOG_AND_NOTIFY;
       }
-      if (state.coderResult?.testsPassed) {
-        return ISSUE_NODES.CODE_REVIEW;
-      }
-      if (state.coderAttempts < CODER_MAX_ATTEMPTS) {
-        return ISSUE_NODES.CODE_IMPLEMENTATION;
-      }
-      return ISSUE_NODES.LOG_AND_NOTIFY;
+      return ISSUE_NODES.CODE_REVIEW;
     })
     .addConditionalEdges(ISSUE_NODES.CODE_REVIEW, (state) => {
       if (state.result.errors.length > 0) {

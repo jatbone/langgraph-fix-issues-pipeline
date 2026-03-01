@@ -35,8 +35,6 @@ export type TIssuePlan = {
 export type TCoderResult = {
   summary: string;
   filesChanged: string[];
-  testsPassed: boolean;
-  testErrorSummary?: string;
 };
 
 export type TReviewFinding = {

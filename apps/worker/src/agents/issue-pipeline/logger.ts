@@ -109,10 +109,6 @@ export const logger = {
     if (state.coderResult) {
       console.log(`  Summary:     ${state.coderResult.summary}`);
       console.log(`  Files:       ${state.coderResult.filesChanged.join(", ")}`);
-      console.log(`  Tests:       ${state.coderResult.testsPassed ? "passed" : "FAILED"}`);
-      if (state.coderResult.testErrorSummary) {
-        console.log(`  Test errors: ${state.coderResult.testErrorSummary}`);
-      }
     }
 
     if (state.reviewResult) {
