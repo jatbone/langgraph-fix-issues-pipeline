@@ -3,7 +3,7 @@
  * based on the plan. Does not run tests — testing is handled by the review node.
  */
 
-import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/shared/server";
+import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/backend";
 import type Docker from "dockerode";
 import { z, ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";

@@ -8,7 +8,7 @@ langgraph-fix-issues-pipeline is a LangGraph + Nx monorepo with a worker app tha
 
 - **pnpm workspaces** + **Nx** for build orchestration
 - `apps/worker` — Node.js worker app with LangGraph agents
-- `packages/shared` — Shared TypeScript types (`@langgraph-fix-issues-pipeline/shared`)
+- `packages/shared` — Backend package (`@langgraph-fix-issues-pipeline/backend`)
 
 ## Build & Dev Commands
 
@@ -30,9 +30,9 @@ pnpm worker:start         # Run compiled worker
 - **Agents:** LangGraph state machines in `src/agents/`
   - `issue-pipeline/` — single node that sends text to Claude and returns response
 
-### Shared Package (`packages/shared`)
+### Backend Package (`packages/shared`)
 
-- Two export paths: `@langgraph-fix-issues-pipeline/shared` (client-safe types) and `@langgraph-fix-issues-pipeline/shared/server` (LangGraph state — backend only)
+- Single export path: `@langgraph-fix-issues-pipeline/backend`
 - ESM module system (`"type": "module"`)
 
 ## TypeScript
