@@ -3,7 +3,7 @@
  */
 
 import { ChatAnthropic } from "@langchain/anthropic";
-import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/shared/server";
+import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/backend";
 import { z, ZodError } from "zod";
 import { logger } from "./logger.js";
 

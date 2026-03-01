@@ -1,12 +1,10 @@
 /**
- * Server-only exports — LangGraph Annotation.Root state definitions.
- * These depend on @langchain/langgraph which is a server-side dependency.
- * Import via "@langgraph-fix-issues-pipeline/shared/server".
+ * LangGraph Annotation.Root state definitions.
  */
 
 import { Annotation } from "@langchain/langgraph";
-import type { TIssueIntake, TIssuePlan, TCoderResult, TReviewResult, TIntegratorResult, TPipelineResult } from "./issue.js";
-export type { TIssueIntake, TIssuePlan, TCoderResult, TReviewResult, TIntegratorResult, TPipelineResult } from "./issue.js";
+import type { TIssueIntake, TIssuePlan, TCoderResult, TReviewResult, TIntegratorResult, TPipelineResult } from "./types.js";
+export type { TIssueIntake, TIssuePlan, TCoderResult, TReviewResult, TIntegratorResult, TPipelineResult } from "./types.js";
 
 /**
  * Issue Pipeline graph state.
