@@ -50,9 +50,11 @@ const formatToolInput = (name: string, input?: Record<string, unknown>): string 
 export const logger = {
   nodeStart(node: string): void {
     console.log(formatMessage(node, "Starting..."));
+    console.log("");
   },
 
   nodeEnd(node: string, result: string): void {
+    console.log("");
     console.log(formatMessage(node, `Done — ${result}`));
   },
 
