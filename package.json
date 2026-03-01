@@ -9,7 +9,9 @@
     "worker:start": "nx run worker:start",
     "db:migrate": "nx run db-helper:migrate",
     "db:insert": "nx run db-helper:insert",
-    "build": "nx run-many --target=build --all --verbose"
+    "build": "nx run-many --target=build --all --verbose",
+    "test": "nx run-many --target=test --all",
+    "worker:test": "nx run worker:test"
   },
   "devDependencies": {
     "nx": "22.5.2"
