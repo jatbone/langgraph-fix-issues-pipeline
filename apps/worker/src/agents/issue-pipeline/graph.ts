@@ -22,7 +22,7 @@ import { createReviewNode } from "./review-node.js";
 import { createIntegratorNode } from "./integrator-node.js";
 import { createLogAndNotifyNode } from "./log-and-notify-node.js";
 import {
-  COTAINER_CREATION_MAX_ATTEMPTS,
+  CONTAINER_CREATION_MAX_ATTEMPTS,
   DEFAULT_ANTHROPIC_MODEL,
   DEFAULT_BASE_BRANCH,
   ISSUE_NODES,
@@ -38,7 +38,7 @@ import { logger } from "./logger.js";
 
 /**
  * Creates a Docker container, starts it, and clones a repo into it.
- * Retries up to COTAINER_CREATION_MAX_ATTEMPTS times on failure.
+ * Retries up to CONTAINER_CREATION_MAX_ATTEMPTS times on failure.
  */
 export const prepareContainer = async () => {
   const githubToken = process.env.GITHUB_TOKEN;
@@ -71,7 +71,7 @@ export const prepareContainer = async () => {
   const docker = createDockerClient();
   await buildImage(docker);
 
-  for (let attempt = 1; attempt <= COTAINER_CREATION_MAX_ATTEMPTS; attempt++) {
+  for (let attempt = 1; attempt <= CONTAINER_CREATION_MAX_ATTEMPTS; attempt++) {
     let containerId = "";
     try {
       const name = `claude-runner-${Date.now()}`;
@@ -146,13 +146,13 @@ export const prepareContainer = async () => {
 
       return { docker, containerId, baseBranch };
     } catch (error) {
-      logger.error("container", `Preparation failed (attempt ${attempt}/${COTAINER_CREATION_MAX_ATTEMPTS})`, error);
+      logger.error("container", `Preparation failed (attempt ${attempt}/${CONTAINER_CREATION_MAX_ATTEMPTS})`, error);
       if (containerId) {
         await cleanupContainer(docker, containerId);
       }
-      if (attempt === COTAINER_CREATION_MAX_ATTEMPTS) {
+      if (attempt === CONTAINER_CREATION_MAX_ATTEMPTS) {
         throw new Error(
-          `Failed to prepare container after ${COTAINER_CREATION_MAX_ATTEMPTS} attempts`,
+          `Failed to prepare container after ${CONTAINER_CREATION_MAX_ATTEMPTS} attempts`,
         );
       }
     }
