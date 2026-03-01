@@ -32,6 +32,7 @@ const issuePlanJsonSchema = zodToJsonSchema(issuePlanSchema);
 
 export const createPlanNode = (docker: Docker, containerId: string) => {
   return async (state: TIssuePipelineGraphState) => {
+    logger.nodeStart("plan_generation");
     try {
       if (!state.issue) {
         throw new Error("plan requires state.issue");
@@ -76,6 +77,7 @@ export const createPlanNode = (docker: Docker, containerId: string) => {
       ], (event) => logger.cliEvent("plan_generation", event));
 
       const parsed = issuePlanSchema.parse(result.structured_output);
+      logger.nodeEnd("plan_generation", `${parsed.estimatedScope} scope, ${parsed.steps.length} steps`);
 
       return { plan: parsed };
     } catch (error) {

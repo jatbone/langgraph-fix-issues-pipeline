@@ -31,6 +31,7 @@ export const createIssueIntakeNode = (docker: Docker, containerId: string) => {
       throw new Error("issue_intake requires state.issue");
     }
 
+    logger.nodeStart("issue_intake");
     const cleanedText = state.issue.cleaned;
 
     const prompt = [
@@ -57,6 +58,7 @@ export const createIssueIntakeNode = (docker: Docker, containerId: string) => {
       ], (event) => logger.cliEvent("issue_intake", event));
 
       const parsed = issueIntakeSchema.parse(result.structured_output);
+      logger.nodeEnd("issue_intake", `"${parsed.title}" (${parsed.complexity})`);
 
       return {
         issue: { ...state.issue, ...parsed },
