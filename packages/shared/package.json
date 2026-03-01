@@ -13,6 +13,10 @@
     "./server": {
       "types": "./dist/server.d.ts",
       "import": "./dist/server.js"
+    },
+    "./db": {
+      "types": "./dist/db/index.d.ts",
+      "import": "./dist/db/index.js"
     }
   },
   "scripts": {
@@ -20,9 +24,11 @@
   },
   "dependencies": {
     "@langchain/langgraph": "^1.0.2",
-    "@langchain/core": "^1.1.0"
+    "@langchain/core": "^1.1.0",
+    "better-sqlite3": "^12.6.2"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "typescript": "^5.3.3"
   }
 }
