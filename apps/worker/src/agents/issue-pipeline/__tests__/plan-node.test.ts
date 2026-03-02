@@ -9,6 +9,7 @@ vi.mock("../../../docker/index.js", () => ({
 }));
 
 vi.mock("../logger.js", () => ({
+  extractNodeCost: vi.fn().mockReturnValue(null),
   logger: {
     nodeStart: vi.fn(),
     nodeEnd: vi.fn(),
@@ -18,9 +19,12 @@ vi.mock("../logger.js", () => ({
   },
 }));
 
+import { extractNodeCost } from "../logger.js";
 import { createPlanNode } from "../plan-node.js";
 import { createMockState, MOCK_ISSUE } from "./helpers.js";
 import type Docker from "dockerode";
+
+const mockExtractNodeCost = vi.mocked(extractNodeCost);
 
 const docker = {} as Docker;
 const containerId = "test-container";
@@ -29,6 +33,7 @@ describe("createPlanNode", () => {
   beforeEach(() => {
     mockExec.mockReset();
     mockStreamExec.mockReset();
+    mockExtractNodeCost.mockReset().mockReturnValue(null);
     mockExec.mockResolvedValue("");
   });
 
@@ -107,5 +112,71 @@ describe("createPlanNode", () => {
     expect(result.result?.errors[0].node).toBe("plan");
     expect(result.result?.errors[0].details).toBeDefined();
     expect(Array.isArray(result.result?.errors[0].details)).toBe(true);
+  });
+
+  it("returns costs on success when extractNodeCost returns a value", async () => {
+    const mockCost = { node: "plan_generation", costUsd: 0.15, inputTokens: 2000, outputTokens: 1000 };
+    mockExtractNodeCost.mockReturnValue(mockCost);
+    mockStreamExec.mockResolvedValue({
+      type: "result",
+      structured_output: {
+        approach: "Fix it",
+        steps: ["Step 1"],
+        risks: [],
+        estimatedScope: "small",
+        filesToModify: ["src/a.ts"],
+      },
+    });
+
+    const node = createPlanNode(docker, containerId);
+    const state = createMockState({ issue: MOCK_ISSUE });
+    const result = await node(state);
+
+    expect(result.costs).toEqual([mockCost]);
+  });
+
+  it("returns empty costs when extractNodeCost returns null", async () => {
+    mockStreamExec.mockResolvedValue({
+      type: "result",
+      structured_output: {
+        approach: "Fix it",
+        steps: ["Step 1"],
+        risks: [],
+        estimatedScope: "small",
+        filesToModify: ["src/a.ts"],
+      },
+    });
+
+    const node = createPlanNode(docker, containerId);
+    const state = createMockState({ issue: MOCK_ISSUE });
+    const result = await node(state);
+
+    expect(result.costs).toEqual([]);
+  });
+
+  it("returns costs on Zod error when CLI succeeded", async () => {
+    const mockCost = { node: "plan_generation", costUsd: 0.10, inputTokens: 1500, outputTokens: 500 };
+    mockExtractNodeCost.mockReturnValue(mockCost);
+    mockStreamExec.mockResolvedValue({
+      type: "result",
+      structured_output: { approach: 999 },
+    });
+
+    const node = createPlanNode(docker, containerId);
+    const state = createMockState({ issue: MOCK_ISSUE });
+    const result = await node(state);
+
+    expect(result.result?.errors).toHaveLength(1);
+    expect(result.costs).toEqual([mockCost]);
+  });
+
+  it("returns empty costs when CLI throws", async () => {
+    mockStreamExec.mockRejectedValue(new Error("Container died"));
+
+    const node = createPlanNode(docker, containerId);
+    const state = createMockState({ issue: MOCK_ISSUE });
+    const result = await node(state);
+
+    expect(result.costs).toEqual([]);
   });
 });

@@ -9,6 +9,7 @@ vi.mock("../../../docker/index.js", () => ({
 }));
 
 vi.mock("../logger.js", () => ({
+  extractNodeCost: vi.fn().mockReturnValue(null),
   logger: {
     nodeStart: vi.fn(),
     nodeEnd: vi.fn(),
@@ -18,6 +19,7 @@ vi.mock("../logger.js", () => ({
   },
 }));
 
+import { extractNodeCost } from "../logger.js";
 import { createIntegratorNode } from "../integrator-node.js";
 import {
   createMockState,
@@ -27,6 +29,8 @@ import {
   MOCK_REVIEW_APPROVED,
 } from "./helpers.js";
 import type Docker from "dockerode";
+
+const mockExtractNodeCost = vi.mocked(extractNodeCost);
 
 const docker = {} as Docker;
 const containerId = "test-container";
@@ -40,6 +44,7 @@ describe("createIntegratorNode", () => {
   beforeEach(() => {
     mockExec.mockReset();
     mockStreamExec.mockReset();
+    mockExtractNodeCost.mockReset().mockReturnValue(null);
     mockExec.mockResolvedValue("devel");
   });
 
@@ -269,5 +274,77 @@ describe("createIntegratorNode", () => {
     expect(result.result?.errors[0].node).toBe("integrate");
     expect(result.result?.errors[0].details).toBeDefined();
     expect(Array.isArray(result.result?.errors[0].details)).toBe(true);
+  });
+
+  it("returns costs on success when extractNodeCost returns a value", async () => {
+    const mockCost = { node: "integrate", costUsd: 0.08, inputTokens: 1200, outputTokens: 400 };
+    mockExtractNodeCost.mockReturnValue(mockCost);
+    mockStreamExec.mockResolvedValue({
+      type: "result",
+      structured_output: validPrOutput,
+    });
+
+    const node = createIntegratorNode(docker, containerId);
+    const state = createMockState({
+      issue: MOCK_ISSUE,
+      plan: MOCK_PLAN,
+      coderResult: MOCK_CODER_RESULT,
+      reviewResult: MOCK_REVIEW_APPROVED,
+    });
+    const result = await node(state);
+
+    expect(result.costs).toEqual([mockCost]);
+  });
+
+  it("returns empty costs when extractNodeCost returns null", async () => {
+    mockStreamExec.mockResolvedValue({
+      type: "result",
+      structured_output: validPrOutput,
+    });
+
+    const node = createIntegratorNode(docker, containerId);
+    const state = createMockState({
+      issue: MOCK_ISSUE,
+      plan: MOCK_PLAN,
+      coderResult: MOCK_CODER_RESULT,
+      reviewResult: MOCK_REVIEW_APPROVED,
+    });
+    const result = await node(state);
+
+    expect(result.costs).toEqual([]);
+  });
+
+  it("returns costs on Zod error when CLI succeeded", async () => {
+    const mockCost = { node: "integrate", costUsd: 0.06, inputTokens: 900, outputTokens: 300 };
+    mockExtractNodeCost.mockReturnValue(mockCost);
+    mockStreamExec.mockResolvedValue({
+      type: "result",
+      structured_output: { prUrl: 123 },
+    });
+
+    const node = createIntegratorNode(docker, containerId);
+    const state = createMockState({
+      issue: MOCK_ISSUE,
+      plan: MOCK_PLAN,
+      coderResult: MOCK_CODER_RESULT,
+    });
+    const result = await node(state);
+
+    expect(result.result?.errors).toHaveLength(1);
+    expect(result.costs).toEqual([mockCost]);
+  });
+
+  it("returns empty costs when CLI throws", async () => {
+    mockStreamExec.mockRejectedValue(new Error("Push rejected"));
+
+    const node = createIntegratorNode(docker, containerId);
+    const state = createMockState({
+      issue: MOCK_ISSUE,
+      plan: MOCK_PLAN,
+      coderResult: MOCK_CODER_RESULT,
+    });
+    const result = await node(state);
+
+    expect(result.costs).toEqual([]);
   });
 });

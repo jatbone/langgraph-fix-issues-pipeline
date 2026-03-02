@@ -21,6 +21,7 @@ export const createMockState = (
   reviewResult: null,
   reviewAttempts: 0,
   integratorResult: null,
+  costs: [],
   ...overrides,
 });
 

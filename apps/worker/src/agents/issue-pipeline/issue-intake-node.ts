@@ -3,12 +3,12 @@
  * with codebase context. On ZodError, stores error in state for conditional retry.
  */
 
-import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/backend";
+import type { TIssuePipelineGraphState, TNodeCost } from "@langgraph-fix-issues-pipeline/backend";
 import type Docker from "dockerode";
 import { z, ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { streamExecInContainer } from "../../docker/index.js";
-import { logger } from "./logger.js";
+import { extractNodeCost, logger } from "./logger.js";
 import { DEFAULT_FAST_MODEL } from "./constants.js";
 
 const issueIntakeSchema = z.object({
@@ -29,6 +29,7 @@ const issueIntakeJsonSchema = zodToJsonSchema(issueIntakeSchema);
 export const createIssueIntakeNode = (docker: Docker, containerId: string) => {
   return async (state: TIssuePipelineGraphState) => {
     logger.nodeStart("issue_intake");
+    const costs: TNodeCost[] = [];
     try {
       if (!state.issue) {
         throw new Error("issue_intake requires state.issue");
@@ -64,6 +65,11 @@ export const createIssueIntakeNode = (docker: Docker, containerId: string) => {
         "--dangerously-skip-permissions",
       ], (event) => logger.cliEvent("issue_intake", event));
 
+      const cost = extractNodeCost("issue_intake", result);
+      if (cost) {
+        costs.push(cost);
+      }
+
       const parsed = issueIntakeSchema.parse(result.structured_output);
       logger.log("issue_intake", "Result", parsed);
       logger.nodeEnd("issue_intake", `"${parsed.title}" (${parsed.complexity})`);
@@ -72,6 +78,7 @@ export const createIssueIntakeNode = (docker: Docker, containerId: string) => {
         issue: { ...state.issue, ...parsed },
         issueIntakeAttempts: state.issueIntakeAttempts + 1,
         result: { errors: [] },
+        costs,
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -87,6 +94,7 @@ export const createIssueIntakeNode = (docker: Docker, containerId: string) => {
             },
           ],
         },
+        costs,
       };
     }
   };

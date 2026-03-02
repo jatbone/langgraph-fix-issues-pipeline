@@ -3,8 +3,8 @@
  */
 
 import { Annotation } from "@langchain/langgraph";
-import type { TIssueIntake, TIssuePlan, TCoderResult, TReviewResult, TIntegratorResult, TPipelineResult } from "./types.js";
-export type { TIssueIntake, TIssuePlan, TCoderResult, TReviewResult, TIntegratorResult, TPipelineResult } from "./types.js";
+import type { TIssueIntake, TIssuePlan, TCoderResult, TReviewResult, TIntegratorResult, TPipelineResult, TNodeCost } from "./types.js";
+export type { TIssueIntake, TIssuePlan, TCoderResult, TReviewResult, TIntegratorResult, TPipelineResult, TNodeCost } from "./types.js";
 
 /**
  * Issue Pipeline graph state.
@@ -69,6 +69,11 @@ export const IssuePipelineState = Annotation.Root({
   integratorResult: Annotation<TIntegratorResult | null>({
     reducer: (x, y) => y ?? x ?? null,
     default: () => null,
+  }),
+  /** Accumulated per-node costs */
+  costs: Annotation<TNodeCost[]>({
+    reducer: (x, y) => [...(x ?? []), ...(y ?? [])],
+    default: () => [],
   }),
 });
 
