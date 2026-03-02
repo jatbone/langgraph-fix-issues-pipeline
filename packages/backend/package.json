@@ -1,5 +1,5 @@
 {
-  "name": "@langgraph-fix-issues-pipeline/shared",
+  "name": "@langgraph-fix-issues-pipeline/backend",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -9,10 +9,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./server": {
-      "types": "./dist/server.d.ts",
-      "import": "./dist/server.js"
     }
   },
   "scripts": {
@@ -20,9 +16,11 @@
   },
   "dependencies": {
     "@langchain/langgraph": "^1.0.2",
-    "@langchain/core": "^1.1.0"
+    "@langchain/core": "^1.1.0",
+    "better-sqlite3": "^12.6.2"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "typescript": "^5.3.3"
   }
 }

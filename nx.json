@@ -8,6 +8,10 @@
     "dev": {
       "dependsOn": ["^build"],
       "cache": false
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "cache": true
     }
   },
   "defaultBase": "main"

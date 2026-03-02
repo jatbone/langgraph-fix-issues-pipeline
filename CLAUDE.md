@@ -8,7 +8,7 @@ langgraph-fix-issues-pipeline is a LangGraph + Nx monorepo with a worker app tha
 
 - **pnpm workspaces** + **Nx** for build orchestration
 - `apps/worker` — Node.js worker app with LangGraph agents
-- `packages/shared` — Shared TypeScript types (`@langgraph-fix-issues-pipeline/shared`)
+- `packages/backend` — Backend package (`@langgraph-fix-issues-pipeline/backend`)
 
 ## Build & Dev Commands
 
@@ -28,11 +28,11 @@ pnpm worker:start         # Run compiled worker
 
 - **Entry:** `src/index.ts` — loads env, compiles graph, invokes, logs result
 - **Agents:** LangGraph state machines in `src/agents/`
-  - `dummy-pipeline/` — single node that sends text to Claude and returns response
+  - `issue-pipeline/` — single node that sends text to Claude and returns response
 
-### Shared Package (`packages/shared`)
+### Backend Package (`packages/backend`)
 
-- Two export paths: `@langgraph-fix-issues-pipeline/shared` (client-safe types) and `@langgraph-fix-issues-pipeline/shared/server` (LangGraph state — backend only)
+- Single export path: `@langgraph-fix-issues-pipeline/backend`
 - ESM module system (`"type": "module"`)
 
 ## TypeScript
@@ -53,12 +53,17 @@ See `.env.example`:
 - Avoid `any` — use precise types
 - Node factory functions: `createXxxNode()` returning async state handlers
 - All `.ts` imports use `.js` extensions (ESM + NodeNext)
+- Always use `{}` braces for `if`/`else`/`else if` blocks
 
 ## Key Patterns
 
-- **State:** `Annotation.Root` with reducers in `packages/shared/src/server.ts`
+- **State:** `Annotation.Root` with reducers in `packages/backend/src/server.ts`
 - **Nodes:** Factory functions in `nodes.ts`, receive full state, return partial update
 
 ## Package Manager
 
 pnpm 10.4.0
+
+## Workflow
+
+- **IMPORTANT: Always create a new branch from `devel` before making ANY code changes.** Use the naming convention (`feat/...`, `fix/...`, `chore/...`). Never commit directly to `devel` or `main`.
