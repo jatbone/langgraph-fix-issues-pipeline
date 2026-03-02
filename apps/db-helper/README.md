@@ -20,7 +20,7 @@ pnpm insert
 
 ## Adding Issues
 
-Edit `src/insert.ts` to change the hardcoded `title` and `body` values before running `pnpm db:insert`.
+> **Important:** `pnpm db:insert` reads the issue `title` and `body` directly from `src/insert.ts`. You **must** edit these values before running the command — there is no CLI prompt or other input method.
 
 ## Database Location
 
