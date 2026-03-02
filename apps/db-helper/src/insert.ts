@@ -1,7 +1,10 @@
 import "dotenv/config";
 import { openDatabase, verifyDatabase, insertIssue } from "@langgraph-fix-issues-pipeline/backend";
 
+// title of the issue
 const title = "";
+
+// description of issue
 const body = "";
 
 if (!title || !body) {
