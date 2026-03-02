@@ -10,6 +10,7 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import { execInContainer, streamExecInContainer } from "../../docker/index.js";
 import { CODER_CONTRACT } from "./contracts.js";
 import { logger } from "./logger.js";
+import { DEFAULT_MODEL } from "./constants.js";
 
 const coderResultSchema = z.object({
   summary: z.string().describe("Summary of changes made"),
@@ -33,6 +34,8 @@ export const createCoderNode = (docker: Docker, containerId: string) => {
       if (!state.baseBranch) {
         throw new Error("coder requires state.baseBranch");
       }
+
+      const model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
 
       const issue = state.issue;
       const plan = state.plan;
@@ -134,6 +137,8 @@ export const createCoderNode = (docker: Docker, containerId: string) => {
           "claude",
           "-p",
           prompt,
+          "--model",
+          model,
           "--disallowedTools",
           "Bash(git *)",
           "mcp__github*",

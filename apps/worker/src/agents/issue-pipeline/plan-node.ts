@@ -10,6 +10,7 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import { execInContainer, streamExecInContainer } from "../../docker/index.js";
 import { PLANNER_CONTRACT } from "./contracts.js";
 import { logger } from "./logger.js";
+import { DEFAULT_MODEL } from "./constants.js";
 
 const issuePlanSchema = z.object({
   approach: z.string().describe("High-level implementation approach"),
@@ -38,6 +39,7 @@ export const createPlanNode = (docker: Docker, containerId: string) => {
         throw new Error("plan requires state.issue");
       }
       const issue = state.issue;
+      const model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
 
       const escapedContract = PLANNER_CONTRACT.replace(/'/g, "'\\''");
       await execInContainer(docker, containerId, [
@@ -64,6 +66,8 @@ export const createPlanNode = (docker: Docker, containerId: string) => {
         "claude",
         "-p",
         prompt,
+        "--model",
+        model,
         "--disallowedTools",
         "Bash(git *)",
         "mcp__github*",

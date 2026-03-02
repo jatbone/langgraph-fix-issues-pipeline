@@ -68,6 +68,8 @@ describe("createPlanNode", () => {
     const streamArgs = mockStreamExec.mock.calls[0];
     const streamCmd = streamArgs[2] as string[];
     expect(streamCmd[0]).toBe("claude");
+    expect(streamCmd).toContain("--model");
+    expect(streamCmd[streamCmd.indexOf("--model") + 1]).toBe("sonnet");
     expect(streamCmd).toContain("--json-schema");
     expect(streamCmd).toContain("--append-system-prompt-file");
 

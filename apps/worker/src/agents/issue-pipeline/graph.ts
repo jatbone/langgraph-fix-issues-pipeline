@@ -23,7 +23,6 @@ import { createIntegratorNode } from "./integrator-node.js";
 import { createLogAndNotifyNode } from "./log-and-notify-node.js";
 import {
   CONTAINER_CREATION_MAX_ATTEMPTS,
-  DEFAULT_ANTHROPIC_MODEL,
   DEFAULT_BASE_BRANCH,
   ISSUE_NODES,
 } from "./constants.js";
@@ -44,7 +43,6 @@ export const prepareContainer = async () => {
   const githubToken = process.env.GITHUB_TOKEN;
   const githubRepo = process.env.GITHUB_REPO;
   const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
-  const anthropicModel = process.env.ANTHROPIC_MODEL || DEFAULT_ANTHROPIC_MODEL;
   const baseBranch = process.env.BASE_BRANCH || DEFAULT_BASE_BRANCH;
 
   if (!anthropicApiKey) {
@@ -78,7 +76,6 @@ export const prepareContainer = async () => {
 
       const env = [
         `ANTHROPIC_API_KEY=${anthropicApiKey}`,
-        `ANTHROPIC_MODEL=${anthropicModel}`,
       ];
 
       const container = await docker.createContainer({
