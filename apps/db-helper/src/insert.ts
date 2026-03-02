@@ -1,8 +1,12 @@
 import "dotenv/config";
 import { openDatabase, verifyDatabase, insertIssue } from "@langgraph-fix-issues-pipeline/backend";
 
-const title = "Example issue title";
-const body = "Describe the issue in detail here.";
+const title = "";
+const body = "";
+
+if (!title || !body) {
+  throw new Error("Both title and body must be set before running this script.");
+}
 
 const db = openDatabase();
 verifyDatabase(db);
