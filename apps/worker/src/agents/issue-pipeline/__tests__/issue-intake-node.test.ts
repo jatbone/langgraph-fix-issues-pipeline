@@ -82,6 +82,8 @@ describe("createIssueIntakeNode", () => {
     expect(args[1]).toBe(containerId);
     const cmd = args[2] as string[];
     expect(cmd[0]).toBe("claude");
+    expect(cmd).toContain("--model");
+    expect(cmd[cmd.indexOf("--model") + 1]).toBe("haiku");
     expect(cmd).toContain("--output-format");
     expect(cmd).toContain("stream-json");
     expect(cmd).toContain("--json-schema");

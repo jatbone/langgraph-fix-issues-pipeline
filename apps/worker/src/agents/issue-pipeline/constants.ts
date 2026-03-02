@@ -2,8 +2,11 @@
  * Constants for the issue pipeline graph.
  */
 
-/** Claude model used when ANTHROPIC_MODEL env var is not set */
-export const DEFAULT_ANTHROPIC_MODEL = "sonnet";
+/** Model for important tasks (plan, code, review) */
+export const DEFAULT_MODEL = "sonnet";
+
+/** Cheaper/faster model for simple nodes (intake, integrator) */
+export const DEFAULT_FAST_MODEL = "haiku";
 
 /** Git branch used when BASE_BRANCH env var is not set */
 export const DEFAULT_BASE_BRANCH = "devel";

@@ -208,6 +208,8 @@ describe("createIntegratorNode", () => {
     const prompt = cliArgs[promptIdx + 1];
     expect(prompt).toContain("fix/fix-login-bug");
     expect(prompt).toContain("Base branch (PR target): devel");
+    expect(cliArgs).toContain("--model");
+    expect(cliArgs[cliArgs.indexOf("--model") + 1]).toBe("haiku");
   });
 
   it("uses review summary as N/A when reviewResult is null", async () => {

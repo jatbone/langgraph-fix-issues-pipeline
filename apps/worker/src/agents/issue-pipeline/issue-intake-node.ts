@@ -9,6 +9,7 @@ import { z, ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { streamExecInContainer } from "../../docker/index.js";
 import { logger } from "./logger.js";
+import { DEFAULT_FAST_MODEL } from "./constants.js";
 
 const issueIntakeSchema = z.object({
   title: z.string().describe("Short descriptive title for the issue"),
@@ -33,6 +34,7 @@ export const createIssueIntakeNode = (docker: Docker, containerId: string) => {
         throw new Error("issue_intake requires state.issue");
       }
       const cleanedText = state.issue.cleaned;
+      const fastModel = process.env.ANTHROPIC_FAST_MODEL || DEFAULT_FAST_MODEL;
 
       const prompt = [
         "Here is an issue to analyze in the context of this codebase:",
@@ -46,6 +48,8 @@ export const createIssueIntakeNode = (docker: Docker, containerId: string) => {
         "claude",
         "-p",
         prompt,
+        "--model",
+        fastModel,
         "--disallowedTools",
         "Bash(git *)",
         "mcp__github*",

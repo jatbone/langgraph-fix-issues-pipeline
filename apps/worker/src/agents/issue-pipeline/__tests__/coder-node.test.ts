@@ -163,6 +163,8 @@ describe("createCoderNode", () => {
     await node(state);
 
     const cliArgs = mockStreamExec.mock.calls[0][2] as string[];
+    expect(cliArgs).toContain("--model");
+    expect(cliArgs[cliArgs.indexOf("--model") + 1]).toBe("sonnet");
     const promptIdx = cliArgs.indexOf("-p");
     const prompt = cliArgs[promptIdx + 1];
     expect(prompt).toContain("CODE REVIEW FEEDBACK");

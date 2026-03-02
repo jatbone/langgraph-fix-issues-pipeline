@@ -11,6 +11,7 @@ import { execInContainer, streamExecInContainer } from "../../docker/index.js";
 import { INTEGRATOR_CONTRACT } from "./contracts.js";
 import { logger } from "./logger.js";
 import { slugify } from "./utils.js";
+import { DEFAULT_FAST_MODEL } from "./constants.js";
 
 const PR_DESCRIPTION_TEMPLATE = `## Summary
 {{summary}}
@@ -66,6 +67,8 @@ export const createIntegratorNode = (docker: Docker, containerId: string) => {
         "git", "-C", "/workspace/repo", "config", "user.name", "Fix Issue Agent",
       ]);
 
+      const fastModel = process.env.ANTHROPIC_FAST_MODEL || DEFAULT_FAST_MODEL;
+
       const slug = slugify(state.issue.title);
       const branchName = `fix/${slug}`;
       const commitMessage = `fix: ${state.issue.title}`;
@@ -113,6 +116,8 @@ export const createIntegratorNode = (docker: Docker, containerId: string) => {
         "claude",
         "-p",
         prompt,
+        "--model",
+        fastModel,
         "--output-format",
         "stream-json",
         "--verbose",

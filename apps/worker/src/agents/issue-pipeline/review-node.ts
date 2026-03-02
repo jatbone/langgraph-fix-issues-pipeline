@@ -11,6 +11,7 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import { execInContainer, streamExecInContainer } from "../../docker/index.js";
 import { REVIEWER_CONTRACT } from "./contracts.js";
 import { logger } from "./logger.js";
+import { DEFAULT_MODEL } from "./constants.js";
 
 const reviewResultSchema = z.object({
   approved: z.boolean().describe("Whether the changes are approved"),
@@ -46,6 +47,8 @@ export const createReviewNode = (docker: Docker, containerId: string) => {
       if (!state.baseBranch) {
         throw new Error("review requires state.baseBranch");
       }
+
+      const model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
 
       const currentBranch = (await execInContainer(docker, containerId, [
         "git", "-C", "/workspace/repo", "branch", "--show-current",
@@ -105,6 +108,8 @@ export const createReviewNode = (docker: Docker, containerId: string) => {
         "claude",
         "-p",
         prompt,
+        "--model",
+        model,
         "--disallowedTools",
         "Bash(git *)",
         "mcp__github*",
