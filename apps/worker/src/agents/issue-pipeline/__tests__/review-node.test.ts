@@ -126,6 +126,11 @@ describe("createReviewNode", () => {
     const prompt = cliArgs[promptIdx + 1];
     expect(prompt).toContain("+ added line");
     expect(prompt).toContain("- removed line");
+    const disallowedIdx = cliArgs.indexOf("--disallowedTools");
+    const disallowed = cliArgs.slice(disallowedIdx + 1, cliArgs.indexOf("--output-format"));
+    expect(disallowed).toContain("Edit");
+    expect(disallowed).toContain("Write");
+    expect(disallowed).toContain("NotebookEdit");
   });
 
   it("returns approved reviewResult and increments attempts on success", async () => {

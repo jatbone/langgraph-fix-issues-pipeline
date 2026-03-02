@@ -72,6 +72,11 @@ describe("createPlanNode", () => {
     expect(streamCmd[streamCmd.indexOf("--model") + 1]).toBe("sonnet");
     expect(streamCmd).toContain("--json-schema");
     expect(streamCmd).toContain("--append-system-prompt-file");
+    const disallowedIdx = streamCmd.indexOf("--disallowedTools");
+    const disallowed = streamCmd.slice(disallowedIdx + 1, streamCmd.indexOf("--output-format"));
+    expect(disallowed).toContain("Edit");
+    expect(disallowed).toContain("Write");
+    expect(disallowed).toContain("NotebookEdit");
 
     expect(result.plan).toEqual(structured_output);
   });
