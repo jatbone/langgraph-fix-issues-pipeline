@@ -88,6 +88,11 @@ describe("createIssueIntakeNode", () => {
     expect(cmd).toContain("stream-json");
     expect(cmd).toContain("--json-schema");
     expect(cmd).toContain("--dangerously-skip-permissions");
+    const disallowedIdx = cmd.indexOf("--disallowedTools");
+    const disallowed = cmd.slice(disallowedIdx + 1, cmd.indexOf("--output-format"));
+    expect(disallowed).toContain("Edit");
+    expect(disallowed).toContain("Write");
+    expect(disallowed).toContain("NotebookEdit");
   });
 
   it("returns error and increments attempts when CLI throws", async () => {
