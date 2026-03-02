@@ -23,7 +23,15 @@ const PR_DESCRIPTION_TEMPLATE = `## Summary
 {{approach}}
 
 ## Review
-{{reviewSummary}}`;
+{{reviewSummary}}
+
+## Test Plan
+- [ ] Pull the branch and run dependency install
+- [ ] Run the build and verify it completes without errors
+- [ ] Verify the listed changed files match the actual diff
+- [ ] Run the test suite and confirm all tests pass
+- [ ] Review the changes against the original issue requirements
+`;
 
 const integratorResultSchema = z.object({
   prUrl: z.string().describe("Full URL of the created pull request"),
