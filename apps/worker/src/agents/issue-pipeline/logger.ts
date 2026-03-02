@@ -3,7 +3,7 @@
  * Prefixed, leveled output without external dependencies.
  */
 
-import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/backend";
+import type { TIssuePipelineGraphState, TNodeCost } from "@langgraph-fix-issues-pipeline/backend";
 import type { TStreamEvent } from "../../docker/index.js";
 
 const isDebug = process.env.IS_DEBUG === "true" || process.env.IS_DEBUG === "'true'";
@@ -45,6 +45,32 @@ const formatToolInput = (name: string, input?: Record<string, unknown>): string 
     default:
       return `Tool: ${name}`;
   }
+};
+
+export const extractNodeCost = (node: string, result: TStreamEvent): TNodeCost | null => {
+  const costField = result.total_cost_usd ?? result.cost_usd;
+  const costUsd = typeof costField === "number" ? costField : null;
+  const usage = result.usage as { input_tokens?: number; output_tokens?: number } | undefined;
+  const inputTokens = typeof usage?.input_tokens === "number" ? usage.input_tokens : null;
+  const outputTokens = typeof usage?.output_tokens === "number" ? usage.output_tokens : null;
+
+  if (costUsd === null) {
+    return null;
+  }
+
+  return {
+    node,
+    costUsd,
+    inputTokens: inputTokens ?? 0,
+    outputTokens: outputTokens ?? 0,
+  };
+};
+
+const formatTokenCount = (tokens: number): string => {
+  if (tokens >= 1000) {
+    return `${(tokens / 1000).toFixed(1)}k`;
+  }
+  return String(tokens);
 };
 
 export const logger = {
@@ -148,6 +174,20 @@ export const logger = {
     if (state.integratorResult) {
       console.log(`  Branch:      ${state.integratorResult.branchName}`);
       console.log(`  PR:          ${state.integratorResult.prUrl}`);
+    }
+
+    if (state.costs.length > 0) {
+      console.log("");
+      console.log("  Costs:");
+      const maxNameLen = Math.max(...state.costs.map((c) => c.node.length));
+      for (const c of state.costs) {
+        const name = c.node.padEnd(maxNameLen);
+        const cost = `$${c.costUsd.toFixed(2)}`;
+        console.log(`    ${name}  ${cost.padStart(6)}   (${formatTokenCount(c.inputTokens)} in / ${formatTokenCount(c.outputTokens)} out)`);
+      }
+      const totalCost = state.costs.reduce((sum, c) => sum + c.costUsd, 0);
+      console.log(`    ${"─".repeat(maxNameLen + 30)}`);
+      console.log(`    ${"Total".padEnd(maxNameLen)}  $${totalCost.toFixed(2).padStart(5)}`);
     }
 
     if (state.result.errors.length > 0) {

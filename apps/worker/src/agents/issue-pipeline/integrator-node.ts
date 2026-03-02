@@ -3,13 +3,13 @@
  * via Claude CLI running inside the Docker container. Does NOT modify any code.
  */
 
-import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/backend";
+import type { TIssuePipelineGraphState, TNodeCost } from "@langgraph-fix-issues-pipeline/backend";
 import type Docker from "dockerode";
 import { z, ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { execInContainer, streamExecInContainer } from "../../docker/index.js";
 import { INTEGRATOR_CONTRACT } from "./contracts.js";
-import { logger } from "./logger.js";
+import { extractNodeCost, logger } from "./logger.js";
 import { slugify } from "./utils.js";
 import { DEFAULT_FAST_MODEL } from "./constants.js";
 
@@ -35,6 +35,7 @@ const integratorResultJsonSchema = zodToJsonSchema(integratorResultSchema);
 export const createIntegratorNode = (docker: Docker, containerId: string) => {
   return async (state: TIssuePipelineGraphState) => {
     logger.nodeStart("integrate");
+    const costs: TNodeCost[] = [];
     try {
       if (!state.issue) {
         throw new Error("integrator requires state.issue");
@@ -128,6 +129,11 @@ export const createIntegratorNode = (docker: Docker, containerId: string) => {
         "--dangerously-skip-permissions",
       ], (event) => logger.cliEvent("integrate", event));
 
+      const cost = extractNodeCost("integrate", result);
+      if (cost) {
+        costs.push(cost);
+      }
+
       const parsed = integratorResultSchema.parse(result.structured_output);
       logger.log("integrate", "Result", parsed);
       logger.nodeEnd("integrate", `PR #${parsed.prNumber} created`);
@@ -138,6 +144,7 @@ export const createIntegratorNode = (docker: Docker, containerId: string) => {
           prUrl: parsed.prUrl,
           prNumber: parsed.prNumber,
         },
+        costs,
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -152,6 +159,7 @@ export const createIntegratorNode = (docker: Docker, containerId: string) => {
             },
           ],
         },
+        costs,
       };
     }
   };

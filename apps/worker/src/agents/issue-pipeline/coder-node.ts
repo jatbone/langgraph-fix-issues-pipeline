@@ -3,13 +3,13 @@
  * based on the plan. Does not run tests — testing is handled by the review node.
  */
 
-import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/backend";
+import type { TIssuePipelineGraphState, TNodeCost } from "@langgraph-fix-issues-pipeline/backend";
 import type Docker from "dockerode";
 import { z, ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { execInContainer, streamExecInContainer } from "../../docker/index.js";
 import { CODER_CONTRACT } from "./contracts.js";
-import { logger } from "./logger.js";
+import { extractNodeCost, logger } from "./logger.js";
 import { DEFAULT_MODEL } from "./constants.js";
 
 const coderResultSchema = z.object({
@@ -24,6 +24,7 @@ const coderResultJsonSchema = zodToJsonSchema(coderResultSchema);
 export const createCoderNode = (docker: Docker, containerId: string) => {
   return async (state: TIssuePipelineGraphState) => {
     logger.nodeStart("code_implementation");
+    const costs: TNodeCost[] = [];
     try {
       if (!state.issue) {
         throw new Error("coder requires state.issue");
@@ -154,6 +155,11 @@ export const createCoderNode = (docker: Docker, containerId: string) => {
         (event) => logger.cliEvent("code_implementation", event),
       );
 
+      const cost = extractNodeCost("code_implementation", result);
+      if (cost) {
+        costs.push(cost);
+      }
+
       const parsed = coderResultSchema.parse(result.structured_output);
       logger.log("code_implementation", "Result", parsed);
       logger.nodeEnd(
@@ -165,6 +171,7 @@ export const createCoderNode = (docker: Docker, containerId: string) => {
         coderResult: parsed,
         coderAttempts: state.coderAttempts + 1,
         result: { errors: [] },
+        costs,
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -183,6 +190,7 @@ export const createCoderNode = (docker: Docker, containerId: string) => {
             },
           ],
         },
+        costs,
       };
     }
   };
