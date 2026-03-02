@@ -3,13 +3,13 @@
  * implementation plan based on the parsed issue and codebase context.
  */
 
-import type { TIssuePipelineGraphState } from "@langgraph-fix-issues-pipeline/backend";
+import type { TIssuePipelineGraphState, TNodeCost } from "@langgraph-fix-issues-pipeline/backend";
 import type Docker from "dockerode";
 import { z, ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { execInContainer, streamExecInContainer } from "../../docker/index.js";
 import { PLANNER_CONTRACT } from "./contracts.js";
-import { logger } from "./logger.js";
+import { extractNodeCost, logger } from "./logger.js";
 import { DEFAULT_MODEL } from "./constants.js";
 
 const issuePlanSchema = z.object({
@@ -34,6 +34,7 @@ const issuePlanJsonSchema = zodToJsonSchema(issuePlanSchema);
 export const createPlanNode = (docker: Docker, containerId: string) => {
   return async (state: TIssuePipelineGraphState) => {
     logger.nodeStart("plan_generation");
+    const costs: TNodeCost[] = [];
     try {
       if (!state.issue) {
         throw new Error("plan requires state.issue");
@@ -84,11 +85,16 @@ export const createPlanNode = (docker: Docker, containerId: string) => {
         "--dangerously-skip-permissions",
       ], (event) => logger.cliEvent("plan_generation", event));
 
+      const cost = extractNodeCost("plan_generation", result);
+      if (cost) {
+        costs.push(cost);
+      }
+
       const parsed = issuePlanSchema.parse(result.structured_output);
       logger.log("plan_generation", "Result", parsed);
       logger.nodeEnd("plan_generation", `${parsed.estimatedScope} scope, ${parsed.steps.length} steps`);
 
-      return { plan: parsed };
+      return { plan: parsed, costs };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       logger.warn("plan_generation", "Failed", { error: message });
@@ -102,6 +108,7 @@ export const createPlanNode = (docker: Docker, containerId: string) => {
             },
           ],
         },
+        costs,
       };
     }
   };

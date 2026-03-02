@@ -59,6 +59,13 @@ export type TIntegratorResult = {
   prNumber: number;
 };
 
+export type TNodeCost = {
+  node: string;
+  costUsd: number;
+  inputTokens: number;
+  outputTokens: number;
+};
+
 export type TIssueStatus = "open" | "claimed" | "success" | "failed";
 
 export type TIssueRow = {
